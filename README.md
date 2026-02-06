@@ -1,120 +1,64 @@
-# Portfolio Integrado
+# Portfolio Integrado - Frontend
 
-Portfolio profissional full stack com frontend moderno e backend API seguro para exibicao de projetos, insights tecnicos e captura de contatos.
+Aplicacao frontend do portfolio profissional de Matheus Siqueira, com foco em descoberta de projetos, narrativa tecnica orientada a dados e conversao de contatos.
 
-## Visao Geral do Projeto
+## Visao Geral do Frontend
 
-O projeto foi desenhado para apresentar a marca profissional de forma escalavel, com foco em tres objetivos:
+O frontend foi estruturado para atender dois objetivos de negocio:
 
-- comunicar autoridade tecnica (software, dados e UX)
-- facilitar descoberta de projetos por recrutadores e clientes
-- converter visitas em contatos qualificados
+- fortalecer posicionamento profissional com uma experiencia visual premium
+- facilitar navegacao, avaliacao tecnica e contato em poucos passos
 
 Publico-alvo principal:
 
-- recrutadores tecnicos
-- gestores de produto e tecnologia
-- clientes que precisam de desenvolvimento sob medida
+- recrutadores e liderancas de tecnologia
+- clientes buscando desenvolvimento frontend/full stack
 
-Fluxo principal da aplicacao:
+Fluxos centrais da experiencia:
 
-1. usuario navega pela home e entende posicionamento profissional
-2. usuario explora projetos por busca, categoria, ordenacao e favoritos
-3. usuario consulta insights agregados de stack e historico de entregas
-4. usuario envia contato via API (com fallback por email)
+1. entendimento do posicionamento e propostas de valor
+2. exploracao de projetos por filtros, busca, ordenacao e favoritos
+3. consumo de insights tecnicos agregados pela API
+4. envio de contato com fallback resiliente para email
 
-## Analise Tecnica e Melhorias Aplicadas
+## Analise Tecnica Executada
 
-Principais pontos identificados na analise inicial:
+Pontos analisados no frontend:
 
-- frontend com dados estaticos e pouca integracao real com backend
-- experiencia de exploracao de projetos ainda limitada para tomada de decisao
-- necessidade de evoluir observabilidade e protecoes anti-spam no backend
-- oportunidades de elevar consistencia visual e hierarquia de informacao
+- arquitetura de estado e eventos da camada de interface
+- custo de renderizacao e atualizacao do grid de projetos
+- consistencia visual e componentes reutilizaveis
+- acessibilidade (teclado, foco, semantica, feedbacks ARIA)
+- SEO on-page e estruturacao de metadados
+- responsividade em desktop/tablet/mobile
 
-Melhorias executadas nesta entrega:
+Decisoes de melhoria aplicadas:
 
-- refactor completo de UI/UX com nova arquitetura visual, layout responsivo e acessibilidade
-- frontend com consumo dinamico da API (`/projects` e `/projects/insights`) + fallback local resiliente
-- novo endpoint analitico de projetos para apoiar narrativa orientada a dados
-- protecao anti-spam com bloqueio de contatos duplicados em curto intervalo
-- enriquecimento de metricas operacionais (metodos, erros, p95/p99)
-- cache HTTP para rotas publicas de projetos
-- validacoes e hardening de configuracao para ambiente de producao
-- ampliacao da cobertura de testes da API
+- consolidacao de design tokens e componentes visuais consistentes
+- sincronizacao de filtros com URL para compartilhamento de contexto
+- adicao de recursos de produtividade no explorador (share/export/historico recente)
+- melhorias de acessibilidade em feedback, navegação e estados interativos
+- pipeline de build com Vite para empacotamento e preview consistente
 
-## Tecnologias Utilizadas
-
-### Frontend
+## Stack e Tecnologias
 
 - HTML5 semantico
-- CSS3 com design tokens e tema claro/escuro
-- JavaScript (ES2020+)
-- Integracao com API REST
-
-### Backend
-
-- Node.js
-- Express
-- Zod (validacao de contratos)
-- JWT + bcryptjs (autenticacao)
-- Helmet, CORS, HPP, rate-limit, compression
-- Pino / Pino HTTP (observabilidade)
-- Persistencia em arquivo JSON com escrita atomica
-
-### Qualidade e Testes
-
-- node:test
-- supertest
+- CSS3 (tokens visuais, layout responsivo, motion-control)
+- JavaScript ES2020+
+- Vite (dev server, build e preview)
+- Integracao com API REST (`/api/v1`)
 
 ## Funcionalidades Principais
 
-- explorador de projetos com busca, filtros e ordenacao
-- favoritos persistentes em `localStorage`
-- modal de detalhes de projeto com foco em legibilidade tecnica
-- dashboard de insights (categorias, stacks e distribuicao temporal)
-- status de conectividade com API em tempo real
-- formulario de contato com validacao de campos e fallback para `mailto`
-- endpoint de insights: `GET /api/v1/projects/insights`
-- bloqueio de contato duplicado recente (`DUPLICATE_CONTACT`)
-- metricas operacionais com latencia p95/p99
-
-## Instalacao e Uso
-
-### Pre-requisitos
-
-- Node.js 18+
-- npm 9+
-
-### 1) Backend
-
-```bash
-cd backend
-npm install
-cp .env.example .env
-npm run dev
-```
-
-API padrao: `http://localhost:3000/api/v1`
-
-### 2) Frontend
-
-Opcao simples (modo local com fallback):
-
-- abra `index.html` no navegador
-
-Opcao recomendada (com backend ativo):
-
-- sirva a raiz do projeto com servidor estatico (ex.: `npx serve .`)
-- mantenha o backend rodando
-- ajuste `<meta name="portfolio-api-base" ...>` em `index.html` se a API estiver em outro host
-
-### 3) Testes
-
-```bash
-cd backend
-npm test
-```
+- explorador de projetos com busca, categoria, ordenacao e favoritos
+- sincronizacao de estado de filtro na URL (`q`, `tag`, `sort`, `fav`)
+- botao de compartilhamento dos filtros ativos
+- exportacao de favoritos em JSON
+- historico de projetos visualizados recentemente
+- modal acessivel com foco gerenciado e suporte a teclado
+- dashboard de insights (categorias, stacks e linha temporal)
+- formulario de contato com validacao robusta e fallback para `mailto`
+- status de conectividade com backend (API online/offline)
 
 ## Estrutura do Projeto
 
@@ -123,37 +67,84 @@ Portfolio-Integrado-main/
 ├── index.html
 ├── style.css
 ├── script.js
+├── package.json
+├── package-lock.json
+├── vite.config.mjs
 ├── backend/
 │   ├── src/
-│   │   ├── application/
-│   │   ├── common/
-│   │   ├── config/
-│   │   ├── infrastructure/
-│   │   └── interfaces/http/
-│   ├── data/
 │   ├── tests/
 │   └── package.json
 └── README.md
 ```
 
+## Setup, Desenvolvimento e Build
+
+### Pre-requisitos
+
+- Node.js 18+
+- npm 9+
+
+### Frontend (Vite)
+
+Instalacao:
+
+```bash
+npm install
+```
+
+Desenvolvimento local:
+
+```bash
+npm run dev
+```
+
+Build de producao:
+
+```bash
+npm run build
+```
+
+Preview do build:
+
+```bash
+npm run preview
+```
+
+Observacao: o `vite.config.mjs` inclui proxy `/api` para `http://localhost:3000`, facilitando desenvolvimento integrado com o backend.
+
+### Backend (opcional para integração completa)
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+Testes backend:
+
+```bash
+cd backend
+npm test
+```
+
 ## Boas Praticas Adotadas
 
-- separacao por camadas no backend (servicos, repositorios, interfaces)
-- validacao de entrada em body/query/params
-- tratamento centralizado de erros com codigos padronizados
-- principio de fallback para preservar disponibilidade do frontend
-- estrategia de cache para reduzir latencia em consultas publicas
-- componentes de UI com foco em contraste, navegacao por teclado e feedback de estado
-- estado de UI previsivel e atualizacao declarativa no frontend
+- design system baseado em tokens (cores, tipografia, espacos, estados)
+- separacao clara de responsabilidades por funcoes de UI e dados
+- atualizacoes de tela previsiveis e sem mutacoes perigosas
+- sanitizacao de dados para renderizacao segura no DOM
+- feedback de estado com `aria-live` e foco visivel
+- degradacao elegante quando a API estiver indisponivel
+- otimização de performance com `content-visibility`, debounce e render incremental
 
-## Possiveis Melhorias Futuras
+## Melhorias Futuras
 
-- migracao de persistencia para PostgreSQL com migrations
-- painel administrativo autenticado para gerenciar projetos e contatos
-- CI/CD com lint, testes e deploy automatizado
-- instrumentacao OpenTelemetry + dashboard de observabilidade
-- internacionalizacao (pt/en) com detecao de idioma
-- testes E2E para fluxos criticos do frontend
+- modularizacao do JavaScript em multiplos arquivos de feature
+- testes E2E do frontend (Playwright/Cypress)
+- i18n (pt-BR/en-US) com detecao de idioma
+- analytics de funil (exploracao -> contato)
+- score automatico de acessibilidade em CI
+- suporte offline com service worker dedicado
 
 Autoria: Matheus Siqueira  
 Website: https://www.matheussiqueira.dev/

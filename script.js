@@ -56,6 +56,11 @@
 
     const THEME_STORAGE_KEY = "portfolio-theme-v2";
     const FAVORITES_STORAGE_KEY = "portfolio-favorites-v2";
+    const RECENT_PROJECTS_STORAGE_KEY = "portfolio-recent-projects-v1";
+    const URL_PARAM_SEARCH = "q";
+    const URL_PARAM_TAG = "tag";
+    const URL_PARAM_SORT = "sort";
+    const URL_PARAM_FAVORITES = "fav";
     const API_BASE = getApiBase();
 
     const state = {
@@ -69,6 +74,7 @@
             favoritesOnly: false
         },
         favorites: loadFavoriteIds(),
+        recentProjectIds: loadRecentProjectIds(),
         modalProjectId: null,
         modalTrigger: null
     };
@@ -82,6 +88,7 @@
         initializeRevealObserver();
         initializeCounters();
         initializeScrollSpy();
+        hydrateFiltersFromUrl();
         initializeProjectExplorer();
         initializeModal();
         initializeCopyEmail();
@@ -90,6 +97,7 @@
         loadPortfolioData().then(() => {
             renderTagFilterOptions();
             renderProjects();
+            renderRecentProjects();
             renderInsights();
         });
     });
@@ -98,6 +106,43 @@
         const apiBaseMeta = document.querySelector('meta[name="portfolio-api-base"]');
         const value = apiBaseMeta?.getAttribute("content")?.trim() || "/api/v1";
         return value.replace(/\/+$/, "");
+    }
+
+    function hydrateFiltersFromUrl() {
+        const params = new URLSearchParams(window.location.search);
+        const searchFromUrl = sanitizeText(params.get(URL_PARAM_SEARCH) || "").slice(0, 120);
+        const tagFromUrl = sanitizeToken(params.get(URL_PARAM_TAG) || "all");
+        const sortFromUrl = params.get(URL_PARAM_SORT);
+        const favoritesOnlyFromUrl = params.get(URL_PARAM_FAVORITES);
+
+        state.filters.search = searchFromUrl;
+        state.filters.tag = tagFromUrl || "all";
+        state.filters.sort = sortFromUrl === "alpha" ? "alpha" : "recent";
+        state.filters.favoritesOnly = favoritesOnlyFromUrl === "1";
+    }
+
+    function syncFiltersToUrl() {
+        const params = new URLSearchParams();
+
+        if (state.filters.search) {
+            params.set(URL_PARAM_SEARCH, state.filters.search);
+        }
+
+        if (state.filters.tag && state.filters.tag !== "all") {
+            params.set(URL_PARAM_TAG, state.filters.tag);
+        }
+
+        if (state.filters.sort === "alpha") {
+            params.set(URL_PARAM_SORT, "alpha");
+        }
+
+        if (state.filters.favoritesOnly) {
+            params.set(URL_PARAM_FAVORITES, "1");
+        }
+
+        const query = params.toString();
+        const nextUrl = `${window.location.pathname}${query ? `?${query}` : ""}`;
+        window.history.replaceState({}, "", nextUrl);
     }
 
     function setCurrentYear() {
@@ -312,14 +357,23 @@
         const sortSelect = document.getElementById("project-sort");
         const favoritesOnlyCheckbox = document.getElementById("favorites-only");
         const clearFiltersButton = document.getElementById("clear-project-filters");
+        const shareFiltersButton = document.getElementById("share-project-filters");
+        const exportFavoritesButton = document.getElementById("export-favorites");
+        const recentProjectsList = document.getElementById("recent-projects-list");
+        const toolbarFeedback = document.getElementById("project-toolbar-feedback");
         const projectGrid = document.getElementById("project-grid");
 
         if (!searchInput || !tagSelect || !sortSelect || !favoritesOnlyCheckbox || !clearFiltersButton || !projectGrid) {
             return;
         }
 
+        searchInput.value = state.filters.search;
+        sortSelect.value = state.filters.sort;
+        favoritesOnlyCheckbox.checked = state.filters.favoritesOnly;
+
         const handleSearch = debounce(value => {
             state.filters.search = value;
+            syncFiltersToUrl();
             renderProjects();
         }, 140);
 
@@ -329,16 +383,19 @@
 
         tagSelect.addEventListener("change", event => {
             state.filters.tag = event.target.value || "all";
+            syncFiltersToUrl();
             renderProjects();
         });
 
         sortSelect.addEventListener("change", event => {
             state.filters.sort = event.target.value === "alpha" ? "alpha" : "recent";
+            syncFiltersToUrl();
             renderProjects();
         });
 
         favoritesOnlyCheckbox.addEventListener("change", event => {
             state.filters.favoritesOnly = Boolean(event.target.checked);
+            syncFiltersToUrl();
             renderProjects();
         });
 
@@ -354,7 +411,68 @@
             tagSelect.value = "all";
             sortSelect.value = "recent";
             favoritesOnlyCheckbox.checked = false;
+            syncFiltersToUrl();
+            setToolbarFeedback("Filtros redefinidos para o estado padrao.");
             renderProjects();
+        });
+
+        shareFiltersButton?.addEventListener("click", async () => {
+            const shareUrl = `${window.location.origin}${window.location.pathname}${window.location.search}`;
+
+            try {
+                if (navigator.clipboard?.writeText) {
+                    await navigator.clipboard.writeText(shareUrl);
+                    setToolbarFeedback("URL dos filtros copiada para a area de transferencia.");
+                    return;
+                }
+                throw new Error("Clipboard API indisponivel");
+            } catch (_error) {
+                setToolbarFeedback("Nao foi possivel copiar automaticamente a URL dos filtros.", true);
+            }
+        });
+
+        exportFavoritesButton?.addEventListener("click", () => {
+            const favoriteProjects = state.projects.filter(project => state.favorites.has(project.id));
+            if (!favoriteProjects.length) {
+                setToolbarFeedback("Adicione projetos aos favoritos antes de exportar.", true);
+                return;
+            }
+
+            const payload = {
+                generatedAt: new Date().toISOString(),
+                total: favoriteProjects.length,
+                projects: favoriteProjects
+            };
+
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+            const href = URL.createObjectURL(blob);
+            const anchor = document.createElement("a");
+            anchor.href = href;
+            anchor.download = "portfolio-favoritos.json";
+            anchor.click();
+            URL.revokeObjectURL(href);
+
+            setToolbarFeedback(`${favoriteProjects.length} favorito(s) exportado(s) com sucesso.`);
+        });
+
+        document.addEventListener("keydown", event => {
+            if (event.key !== "/" || event.ctrlKey || event.metaKey || event.altKey) {
+                return;
+            }
+
+            if (!(event.target instanceof HTMLElement)) {
+                return;
+            }
+
+            const targetTag = event.target.tagName.toLowerCase();
+            const typingContext = ["input", "textarea", "select"].includes(targetTag) || event.target.isContentEditable;
+            if (typingContext) {
+                return;
+            }
+
+            event.preventDefault();
+            searchInput.focus();
+            searchInput.select();
         });
 
         projectGrid.addEventListener("click", event => {
@@ -379,6 +497,33 @@
                 renderProjects();
             }
         });
+
+        recentProjectsList?.addEventListener("click", event => {
+            if (!(event.target instanceof HTMLElement)) {
+                return;
+            }
+
+            const openButton = event.target.closest("[data-recent-open]");
+            if (!openButton) {
+                return;
+            }
+
+            const projectId = openButton.getAttribute("data-recent-open") || "";
+            const project = state.projects.find(item => item.id === projectId);
+            if (project) {
+                openProjectModal(project, openButton);
+            }
+        });
+
+        function setToolbarFeedback(message, isError = false) {
+            if (!toolbarFeedback) {
+                return;
+            }
+
+            toolbarFeedback.classList.remove("is-success", "is-error");
+            toolbarFeedback.classList.add(isError ? "is-error" : "is-success");
+            toolbarFeedback.textContent = message;
+        }
     }
 
     function initializeModal() {
@@ -410,32 +555,37 @@
 
     async function loadPortfolioData() {
         setApiStatus("loading", "Conectando API...");
+        setProjectGridBusyState(true);
 
         let projectsFromApi = null;
         try {
-            const payload = await fetchJson(`${API_BASE}/projects?status=published&limit=50`);
-            if (Array.isArray(payload.items) && payload.items.length) {
-                projectsFromApi = payload.items.map(normalizeProject);
+            try {
+                const payload = await fetchJson(`${API_BASE}/projects?status=published&limit=50`);
+                if (Array.isArray(payload.items) && payload.items.length) {
+                    projectsFromApi = payload.items.map(normalizeProject);
+                }
+            } catch (_error) {
+                projectsFromApi = null;
             }
-        } catch (_error) {
-            projectsFromApi = null;
-        }
 
-        if (projectsFromApi && projectsFromApi.length) {
-            state.projects = projectsFromApi;
-            state.dataSource = "api";
-            setApiStatus("ok", `API online (${projectsFromApi.length} projetos carregados).`);
-        } else {
-            state.projects = FALLBACK_PROJECTS.map(normalizeProject);
-            state.dataSource = "fallback";
-            setApiStatus("offline", "API indisponivel. Exibindo base local resiliente.");
-        }
+            if (projectsFromApi && projectsFromApi.length) {
+                state.projects = projectsFromApi;
+                state.dataSource = "api";
+                setApiStatus("ok", `API online (${projectsFromApi.length} projetos carregados).`);
+            } else {
+                state.projects = FALLBACK_PROJECTS.map(normalizeProject);
+                state.dataSource = "fallback";
+                setApiStatus("offline", "API indisponivel. Exibindo base local resiliente.");
+            }
 
-        try {
-            const insightPayload = await fetchJson(`${API_BASE}/projects/insights?status=published`);
-            state.insights = normalizeInsights(insightPayload, state.projects);
-        } catch (_error) {
-            state.insights = deriveInsights(state.projects);
+            try {
+                const insightPayload = await fetchJson(`${API_BASE}/projects/insights?status=published`);
+                state.insights = normalizeInsights(insightPayload, state.projects);
+            } catch (_error) {
+                state.insights = deriveInsights(state.projects);
+            }
+        } finally {
+            setProjectGridBusyState(false);
         }
     }
 
@@ -462,8 +612,14 @@
             tagSelect.append(option);
         });
 
-        tagSelect.value = tags.includes(currentValue) || currentValue === "all" ? currentValue : "all";
-        state.filters.tag = tagSelect.value;
+        const normalizedTag = tags.includes(currentValue) || currentValue === "all" ? currentValue : "all";
+        tagSelect.value = normalizedTag;
+        if (state.filters.tag !== normalizedTag) {
+            state.filters.tag = normalizedTag;
+            syncFiltersToUrl();
+        } else {
+            state.filters.tag = normalizedTag;
+        }
     }
 
     function renderProjects() {
@@ -483,6 +639,7 @@
             emptyState.textContent = "Nenhum projeto corresponde aos filtros atuais. Ajuste os criterios e tente novamente.";
             grid.append(emptyState);
             resultCounter.textContent = "0 projetos encontrados.";
+            renderRecentProjects();
             return;
         }
 
@@ -494,6 +651,7 @@
         grid.append(fragment);
         const sourceLabel = state.dataSource === "api" ? "dados da API" : "modo local";
         resultCounter.textContent = `${projects.length} projeto(s) encontrado(s) (${sourceLabel}).`;
+        renderRecentProjects();
     }
 
     function getFilteredProjects() {
@@ -761,6 +919,7 @@
 
         state.modalProjectId = project.id;
         state.modalTrigger = triggerElement instanceof HTMLElement ? triggerElement : null;
+        trackRecentlyViewedProject(project.id);
 
         title.textContent = project.title;
         summary.textContent = project.summary;
@@ -866,6 +1025,67 @@
         }
 
         persistFavoriteIds(state.favorites);
+    }
+
+    function trackRecentlyViewedProject(projectId) {
+        const normalizedId = sanitizeToken(projectId);
+        if (!normalizedId) {
+            return;
+        }
+
+        state.recentProjectIds = [
+            normalizedId,
+            ...state.recentProjectIds.filter(id => id !== normalizedId)
+        ].slice(0, 5);
+
+        persistRecentProjectIds(state.recentProjectIds);
+        renderRecentProjects();
+    }
+
+    function renderRecentProjects() {
+        const list = document.getElementById("recent-projects-list");
+        if (!list) {
+            return;
+        }
+
+        list.textContent = "";
+
+        const recentProjects = state.recentProjectIds
+            .map(id => state.projects.find(project => project.id === id))
+            .filter(Boolean);
+
+        if (!recentProjects.length) {
+            const empty = document.createElement("li");
+            empty.className = "recent-projects__empty";
+            empty.textContent = "Nenhum projeto visualizado recentemente.";
+            list.append(empty);
+            return;
+        }
+
+        const fragment = document.createDocumentFragment();
+
+        recentProjects.forEach(project => {
+            const item = document.createElement("li");
+
+            const content = document.createElement("div");
+            const title = document.createElement("strong");
+            title.textContent = project.title;
+
+            const subtitle = document.createElement("span");
+            subtitle.textContent = `${project.year} • ${project.stack.join(" | ")}`;
+
+            content.append(title, subtitle);
+
+            const button = document.createElement("button");
+            button.type = "button";
+            button.setAttribute("data-recent-open", project.id);
+            button.textContent = "Abrir";
+
+            item.append(content, button);
+            fragment.append(item);
+        });
+
+        list.append(fragment);
     }
 
     function initializeContactForm() {
@@ -1096,6 +1316,15 @@
         badge.textContent = text;
     }
 
+    function setProjectGridBusyState(isBusy) {
+        const grid = document.getElementById("project-grid");
+        if (!grid) {
+            return;
+        }
+
+        grid.setAttribute("aria-busy", String(Boolean(isBusy)));
+    }
+
     async function fetchJson(url, options = {}) {
         const controller = new AbortController();
         const timeoutId = window.setTimeout(() => controller.abort(), 6500);
@@ -1236,9 +1465,39 @@
         }
     }
 
+    function loadRecentProjectIds() {
+        const raw = safeStorageGet(RECENT_PROJECTS_STORAGE_KEY);
+
+        if (!raw) {
+            return [];
+        }
+
+        try {
+            const parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed)) {
+                return [];
+            }
+
+            return parsed
+                .map(value => sanitizeToken(value))
+                .filter(Boolean)
+                .slice(0, 5);
+        } catch (_error) {
+            return [];
+        }
+    }
+
     function persistFavoriteIds(favoritesSet) {
         try {
             safeStorageSet(FAVORITES_STORAGE_KEY, JSON.stringify([...favoritesSet]));
+        } catch (_error) {
+            // ignore storage errors
+        }
+    }
+
+    function persistRecentProjectIds(recentIds) {
+        try {
+            safeStorageSet(RECENT_PROJECTS_STORAGE_KEY, JSON.stringify(recentIds.slice(0, 5)));
         } catch (_error) {
             // ignore storage errors
         }

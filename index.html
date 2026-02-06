@@ -8,6 +8,7 @@
     <meta name="description" content="Portfolio profissional de Matheus Siqueira com foco em engenharia de software, design de produto, performance e dados.">
     <meta name="keywords" content="portfolio, software engineer, frontend, backend, data analytics, ux">
     <meta name="author" content="Matheus Siqueira">
+    <meta name="robots" content="index,follow,max-image-preview:large">
     <meta name="theme-color" content="#0b1324">
     <meta property="og:type" content="website">
     <meta property="og:title" content="Matheus Siqueira | Engenharia de Software, Dados e UX">
@@ -200,10 +201,19 @@
                     </label>
 
                     <button class="btn btn--ghost" type="button" id="clear-project-filters">Limpar filtros</button>
+                    <button class="btn btn--ghost" type="button" id="share-project-filters">Compartilhar filtros</button>
+                    <button class="btn btn--ghost" type="button" id="export-favorites">Exportar favoritos</button>
                 </div>
 
+                <p id="project-toolbar-feedback" class="project-toolbar-feedback" role="status" aria-live="polite"></p>
                 <p id="project-result-count" class="project-result" role="status" aria-live="polite"></p>
-                <div id="project-grid" class="project-grid" aria-live="polite"></div>
+                <div id="project-grid" class="project-grid" aria-live="polite" aria-busy="true"></div>
+
+                <aside class="card recent-projects reveal" aria-labelledby="recent-projects-title">
+                    <h3 id="recent-projects-title">Visualizados recentemente</h3>
+                    <p>Ultimos projetos abertos no modal para retomada rapida de contexto.</p>
+                    <ul id="recent-projects-list" class="recent-projects__list"></ul>
+                </aside>
             </div>
         </section>
 
@@ -371,6 +381,6 @@
         </div>
     </noscript>
 
-    <script src="script.js" defer></script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>

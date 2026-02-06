@@ -1,0 +1,52 @@
+{
+  "projects": [
+    {
+      "id": "project-ferias",
+      "title": "Sistema de Ferias - Prefeitura de Jaboatao",
+      "summary": "Fluxo de solicitacao e aprovacao de ferias com auditoria e painel administrativo.",
+      "impact": "Reduziu retrabalho operacional no processo de aprovacao.",
+      "year": 2025,
+      "tags": [
+        "backend",
+        "dados"
+      ],
+      "stack": [
+        "Node.js",
+        "Prisma",
+        "PostgreSQL"
+      ],
+      "status": "published",
+      "createdAt": "2026-02-06T00:00:00.000Z",
+      "updatedAt": "2026-02-06T00:00:00.000Z"
+    },
+    {
+      "id": "project-portfolio",
+      "title": "Portfolio Integrado",
+      "summary": "Refactor completo de portfolio com foco em performance, SEO e acessibilidade.",
+      "impact": "Melhorou conversao de contato e legibilidade tecnica do portfolio.",
+      "year": 2026,
+      "tags": [
+        "frontend"
+      ],
+      "stack": [
+        "HTML",
+        "CSS",
+        "JavaScript"
+      ],
+      "status": "published",
+      "createdAt": "2026-02-06T00:00:00.000Z",
+      "updatedAt": "2026-02-06T00:00:00.000Z"
+    }
+  ],
+  "contacts": [],
+  "users": [
+    {
+      "id": "user-c3dc580f-ee73-4b50-999c-3aeb2eef60b8",
+      "email": "admin@portfolio.local",
+      "passwordHash": "$2a$10$IbNZaJZ6g9BHUzNBohfV8.YOuaLZR8DuAWFbey2/2im59Tr8MGc9y",
+      "role": "admin",
+      "createdAt": "2026-02-06T00:29:36.479Z",
+      "updatedAt": "2026-02-06T00:31:03.321Z"
+    }
+  ]
+}

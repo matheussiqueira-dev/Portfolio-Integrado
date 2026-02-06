@@ -1,0 +1,11 @@
+{
+  "name": "Matheus Siqueira Portfolio",
+  "short_name": "MS Portfolio",
+  "description": "Portfolio profissional com projetos de frontend, dados e full stack.",
+  "start_url": "/Portfolio-Integrado/",
+  "display": "standalone",
+  "background_color": "#f4f7f4",
+  "theme_color": "#0f766e",
+  "lang": "pt-BR",
+  "icons": []
+}

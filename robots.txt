@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://matheussiqueirahub.github.io/Portfolio-Integrado/sitemap.xml
+Sitemap: https://matheussiqueira-dev.github.io/Portfolio-Integrado/sitemap.xml

@@ -39,7 +39,7 @@ const OPEN_API_SPEC = {
     openapi: "3.0.3",
     info: {
         title: "Portfolio Integrado Backend API",
-        version: "1.1.0",
+        version: "1.2.0",
         description: "API versionada para gerenciamento de projetos, contatos e observabilidade do portfolio."
     },
     servers: [{ url: "/api/v1" }],
@@ -84,12 +84,22 @@ const OPEN_API_SPEC = {
                 summary: "Distribuicao de tags dos projetos"
             }
         },
+        "/projects/recommendations": {
+            get: {
+                summary: "Recomendacoes de projetos com base em interesse e busca"
+            }
+        },
         "/contacts": {
             post: {
                 summary: "Registra contato publico"
             },
             get: {
                 summary: "Lista contatos (admin)"
+            }
+        },
+        "/contacts/summary": {
+            get: {
+                summary: "Resumo operacional de contatos (admin)"
             }
         },
         "/contacts/{id}": {

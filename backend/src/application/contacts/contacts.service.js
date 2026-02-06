@@ -151,6 +151,64 @@ class ContactsService {
         return contact;
     }
 
+    async getSummary({ from, to }) {
+        const fromDate = this.#parseDateFilter(from, "from");
+        const toDate = this.#parseDateFilter(to, "to");
+
+        let contacts = await this.contactsRepository.list();
+        if (fromDate || toDate) {
+            contacts = contacts.filter(contact => this.#isContactInRange(contact, fromDate, toDate));
+        }
+
+        const byStatus = contacts.reduce((accumulator, contact) => {
+            const key = String(contact.status || "unknown");
+            accumulator[key] = (accumulator[key] || 0) + 1;
+            return accumulator;
+        }, {});
+
+        const bySource = contacts.reduce((accumulator, contact) => {
+            const key = String(contact.source || "unknown").toLowerCase();
+            accumulator[key] = (accumulator[key] || 0) + 1;
+            return accumulator;
+        }, {});
+
+        const dailyVolume = Object.entries(
+            contacts.reduce((accumulator, contact) => {
+                const day = String(contact.createdAt || "").slice(0, 10);
+                if (!day) {
+                    return accumulator;
+                }
+
+                accumulator[day] = (accumulator[day] || 0) + 1;
+                return accumulator;
+            }, {})
+        )
+            .sort((a, b) => a[0].localeCompare(b[0]))
+            .map(([date, total]) => ({ date, total }));
+
+        const resolutionMinutes = contacts
+            .map(contact => this.#calculateResolutionMinutes(contact))
+            .filter(value => Number.isFinite(value) && value >= 0);
+
+        const total = contacts.length;
+        const resolvedTotal = byStatus.resolved || 0;
+        const openTotal = total - resolvedTotal;
+        const averageResolutionMinutes = resolutionMinutes.length
+            ? Number((resolutionMinutes.reduce((sum, value) => sum + value, 0) / resolutionMinutes.length).toFixed(2))
+            : null;
+
+        return {
+            total,
+            openTotal,
+            resolvedTotal,
+            resolvedRatePercent: total ? Number(((resolvedTotal / total) * 100).toFixed(2)) : 0,
+            averageResolutionMinutes,
+            byStatus,
+            bySource,
+            dailyVolume
+        };
+    }
+
     async updateStatus(id, payload, context = {}) {
         const normalizedNote = normalizeText(payload.internalNote || "");
         const actor = normalizeText(context.actor || "admin");
@@ -223,6 +281,46 @@ class ContactsService {
         }
 
         return normalized;
+    }
+
+    #isContactInRange(contact, fromDate, toDate) {
+        const created = Date.parse(contact.createdAt || "");
+        if (!Number.isFinite(created)) {
+            return false;
+        }
+
+        if (fromDate && created < fromDate.getTime()) {
+            return false;
+        }
+
+        if (toDate && created > toDate.getTime()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    #calculateResolutionMinutes(contact) {
+        if (contact.status !== "resolved") {
+            return null;
+        }
+
+        const createdAt = Date.parse(contact.createdAt || "");
+        if (!Number.isFinite(createdAt)) {
+            return null;
+        }
+
+        const history = Array.isArray(contact.statusHistory) ? contact.statusHistory : [];
+        const resolvedEntry = [...history]
+            .reverse()
+            .find(item => String(item?.status || "").toLowerCase() === "resolved");
+        const resolvedAt = Date.parse(resolvedEntry?.changedAt || contact.updatedAt || "");
+
+        if (!Number.isFinite(resolvedAt) || resolvedAt < createdAt) {
+            return null;
+        }
+
+        return (resolvedAt - createdAt) / (1000 * 60);
     }
 
     #parseDateFilter(value, fieldName) {

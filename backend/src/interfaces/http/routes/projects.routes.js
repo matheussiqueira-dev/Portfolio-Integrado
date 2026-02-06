@@ -8,6 +8,7 @@ const {
     projectQuerySchema,
     projectInsightsQuerySchema,
     projectTagsQuerySchema,
+    projectRecommendationsQuerySchema,
     idParamSchema
 } = require("../schemas/schemas");
 
@@ -43,6 +44,16 @@ function createProjectsRouter({ projectsService, authService }) {
         validate({ query: projectTagsQuerySchema }),
         asyncHandler(async (req, res) => {
             const data = await projectsService.getTagsSummary(req.query);
+            setPublicCacheHeaders(res);
+            res.status(200).json(data);
+        })
+    );
+
+    router.get(
+        "/recommendations",
+        validate({ query: projectRecommendationsQuerySchema }),
+        asyncHandler(async (req, res) => {
+            const data = await projectsService.getRecommendations(req.query);
             setPublicCacheHeaders(res);
             res.status(200).json(data);
         })

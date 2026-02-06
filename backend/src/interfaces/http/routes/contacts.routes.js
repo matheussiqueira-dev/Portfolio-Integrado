@@ -6,6 +6,7 @@ const {
     contactCreateSchema,
     contactListQuerySchema,
     contactStatusUpdateSchema,
+    contactSummaryQuerySchema,
     idParamSchema
 } = require("../schemas/schemas");
 
@@ -39,6 +40,17 @@ function createContactsRouter({ contactsService, authService, contactRateLimiter
         asyncHandler(async (req, res) => {
             const contacts = await contactsService.list(req.query);
             res.status(200).json(contacts);
+        })
+    );
+
+    router.get(
+        "/summary",
+        authenticationMiddleware(authService),
+        authorizeRoles("admin"),
+        validate({ query: contactSummaryQuerySchema }),
+        asyncHandler(async (req, res) => {
+            const summary = await contactsService.getSummary(req.query);
+            res.status(200).json(summary);
         })
     );
 

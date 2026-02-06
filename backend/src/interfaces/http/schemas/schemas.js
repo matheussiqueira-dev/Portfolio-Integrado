@@ -34,6 +34,13 @@ const projectTagsQuerySchema = z.object({
     status: z.enum(["all", "draft", "published"]).optional()
 });
 
+const projectRecommendationsQuerySchema = z.object({
+    interest: z.string().max(140).optional(),
+    search: z.string().max(120).optional(),
+    status: z.enum(["all", "draft", "published"]).optional(),
+    limit: z.coerce.number().int().gte(1).lte(12).optional()
+});
+
 const idParamSchema = z.object({
     id: z.string().min(5).max(100)
 });
@@ -62,6 +69,11 @@ const contactStatusUpdateSchema = z.object({
     internalNote: z.string().max(300).optional()
 });
 
+const contactSummaryQuerySchema = z.object({
+    from: z.string().datetime().optional(),
+    to: z.string().datetime().optional()
+});
+
 module.exports = {
     loginSchema,
     projectCreateSchema,
@@ -69,8 +81,10 @@ module.exports = {
     projectQuerySchema,
     projectInsightsQuerySchema,
     projectTagsQuerySchema,
+    projectRecommendationsQuerySchema,
     idParamSchema,
     contactCreateSchema,
     contactListQuerySchema,
-    contactStatusUpdateSchema
+    contactStatusUpdateSchema,
+    contactSummaryQuerySchema
 };

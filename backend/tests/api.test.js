@@ -319,3 +319,97 @@ test("GET /api/v1/projects/tags retorna taxonomia agregada de tags", async () =>
     assert.equal(response.body.tags[0].tag, "backend");
     assert.equal(response.headers["cache-control"], "public, max-age=60, stale-while-revalidate=300");
 });
+
+test("GET /api/v1/projects/recommendations retorna ranking por interesse", async () => {
+    const { app } = await createTestContext();
+
+    const login = await request(app)
+        .post("/api/v1/auth/login")
+        .send({ email: TEST_CONFIG.adminEmail, password: TEST_CONFIG.adminPassword });
+
+    const token = login.body.accessToken;
+
+    await request(app)
+        .post("/api/v1/projects")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+            title: "API Node para Dados",
+            summary: "Servico backend para consolidacao de indicadores e governanca de dados.",
+            impact: "Acelerou consumo de dados por times de produto.",
+            year: 2026,
+            tags: ["backend", "dados"],
+            stack: ["Node.js", "Express"],
+            status: "published"
+        });
+
+    await request(app)
+        .post("/api/v1/projects")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+            title: "Landing de Conversao",
+            summary: "Interface focada em UX e acessibilidade para captacao de leads.",
+            impact: "Melhorou taxa de conversao em campanhas digitais.",
+            year: 2025,
+            tags: ["frontend"],
+            stack: ["HTML", "CSS"],
+            status: "published"
+        });
+
+    const response = await request(app)
+        .get("/api/v1/projects/recommendations")
+        .query({ interest: "backend,node", limit: 2 });
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.body.query.interestTokens.length, 2);
+    assert.equal(response.body.items.length, 2);
+    assert.ok(response.body.items[0].recommendation.score >= 0);
+    assert.equal(response.headers["cache-control"], "public, max-age=60, stale-while-revalidate=300");
+});
+
+test("GET /api/v1/contacts/summary retorna visao operacional da fila de contatos", async () => {
+    const { app } = await createTestContext();
+
+    const firstContact = await request(app).post("/api/v1/contacts").send({
+        name: "Cliente Operacional",
+        email: "cliente.ops@empresa.com",
+        subject: "Automacao de processos",
+        message: "Preciso de apoio para melhorar processos e observabilidade do backend.",
+        source: "site",
+        website: ""
+    });
+
+    await request(app).post("/api/v1/contacts").send({
+        name: "Cliente Comercial",
+        email: "cliente.comercial@empresa.com",
+        subject: "Nova landing page",
+        message: "Quero evoluir a experiencia da landing page e aumentar conversoes.",
+        source: "linkedin",
+        website: ""
+    });
+
+    const login = await request(app)
+        .post("/api/v1/auth/login")
+        .send({ email: TEST_CONFIG.adminEmail, password: TEST_CONFIG.adminPassword });
+
+    const token = login.body.accessToken;
+
+    await request(app)
+        .patch(`/api/v1/contacts/${firstContact.body.id}/status`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+            status: "resolved",
+            internalNote: "Contato qualificado e respondido."
+        });
+
+    const response = await request(app)
+        .get("/api/v1/contacts/summary")
+        .set("Authorization", `Bearer ${token}`);
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.body.total, 2);
+    assert.equal(response.body.resolvedTotal, 1);
+    assert.equal(response.body.openTotal, 1);
+    assert.equal(response.body.byStatus.resolved, 1);
+    assert.equal(response.body.bySource.site, 1);
+    assert.ok(Array.isArray(response.body.dailyVolume));
+});

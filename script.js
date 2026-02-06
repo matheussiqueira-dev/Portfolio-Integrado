@@ -10,7 +10,7 @@
             year: 2025,
             stack: ["Node.js", "Prisma", "PostgreSQL", "JavaScript"],
             tags: ["backend", "dados"],
-            url: "https://github.com/matheussiqueirahub/backsist-ferias"
+            url: "https://github.com/matheussiqueira-dev/backsist-ferias"
         },
         {
             id: "aria",
@@ -20,7 +20,7 @@
             year: 2024,
             stack: ["Linux", "Bash", "Raspberry Pi"],
             tags: ["iot", "backend"],
-            url: "https://github.com/matheussiqueirahub/Projeto_Aria"
+            url: "https://github.com/matheussiqueira-dev/Projeto_Aria"
         },
         {
             id: "aurora",
@@ -30,7 +30,7 @@
             year: 2024,
             stack: ["Python", "Typer"],
             tags: ["python", "backend"],
-            url: "https://github.com/matheussiqueirahub/banco_aurora"
+            url: "https://github.com/matheussiqueira-dev/banco_aurora"
         },
         {
             id: "dashboard-tributario",
@@ -40,7 +40,7 @@
             year: 2026,
             stack: ["Power BI", "SQL", "DAX"],
             tags: ["dados"],
-            url: "https://github.com/matheussiqueirahub"
+            url: "https://github.com/matheussiqueira-dev"
         },
         {
             id: "portfolio-integrado",
@@ -50,17 +50,19 @@
             year: 2026,
             stack: ["HTML", "CSS", "JavaScript", "Node.js"],
             tags: ["frontend", "backend"],
-            url: "https://github.com/matheussiqueirahub/Portfolio-Integrado-main"
+            url: "https://github.com/matheussiqueira-dev/Portfolio-Integrado"
         }
     ];
 
     const THEME_STORAGE_KEY = "portfolio-theme-v2";
     const FAVORITES_STORAGE_KEY = "portfolio-favorites-v2";
     const RECENT_PROJECTS_STORAGE_KEY = "portfolio-recent-projects-v1";
+    const CONTACT_DRAFT_STORAGE_KEY = "portfolio-contact-draft-v1";
     const URL_PARAM_SEARCH = "q";
     const URL_PARAM_TAG = "tag";
     const URL_PARAM_SORT = "sort";
     const URL_PARAM_FAVORITES = "fav";
+    const RECOMMENDATION_LIMIT = 3;
     const API_BASE = getApiBase();
 
     const state = {
@@ -76,7 +78,8 @@
         favorites: loadFavoriteIds(),
         recentProjectIds: loadRecentProjectIds(),
         modalProjectId: null,
-        modalTrigger: null
+        modalTrigger: null,
+        recommendedProjects: []
     };
 
     let modalAbortController = null;
@@ -90,6 +93,7 @@
         initializeScrollSpy();
         hydrateFiltersFromUrl();
         initializeProjectExplorer();
+        initializeRecommendationStudio();
         initializeModal();
         initializeCopyEmail();
         initializeContactForm();
@@ -99,6 +103,7 @@
             renderProjects();
             renderRecentProjects();
             renderInsights();
+            runRecommendations({ preferApi: true });
         });
     });
 
@@ -524,6 +529,249 @@
             toolbarFeedback.classList.add(isError ? "is-error" : "is-success");
             toolbarFeedback.textContent = message;
         }
+    }
+
+    function initializeRecommendationStudio() {
+        const interestInput = document.getElementById("recommendation-interest");
+        const searchInput = document.getElementById("recommendation-search");
+        const runButton = document.getElementById("recommendation-run");
+        const list = document.getElementById("recommendation-list");
+        const feedback = document.getElementById("recommendation-feedback");
+
+        if (!(interestInput instanceof HTMLInputElement) ||
+            !(searchInput instanceof HTMLInputElement) ||
+            !(runButton instanceof HTMLButtonElement) ||
+            !list ||
+            !feedback) {
+            return;
+        }
+
+        if (!interestInput.value.trim()) {
+            interestInput.value = "backend,dados,api";
+        }
+
+        runButton.addEventListener("click", async () => {
+            await runRecommendations({ preferApi: state.dataSource !== "fallback" });
+        });
+
+        searchInput.addEventListener(
+            "input",
+            debounce(() => {
+                runRecommendations({ preferApi: state.dataSource !== "fallback" });
+            }, 220)
+        );
+
+        const chips = document.querySelectorAll("[data-interest-chip]");
+        chips.forEach(chip => {
+            chip.addEventListener("click", () => {
+                const value = chip.getAttribute("data-interest-chip") || "";
+                interestInput.value = value;
+                runRecommendations({ preferApi: state.dataSource !== "fallback" });
+            });
+        });
+
+        list.addEventListener("click", event => {
+            if (!(event.target instanceof HTMLElement)) {
+                return;
+            }
+
+            const openButton = event.target.closest("[data-recommend-open]");
+            if (!openButton) {
+                return;
+            }
+
+            const projectId = openButton.getAttribute("data-recommend-open") || "";
+            const project = state.projects.find(item => item.id === projectId)
+                || state.recommendedProjects.find(item => item.id === projectId);
+
+            if (project) {
+                openProjectModal(project, openButton);
+            }
+        });
+    }
+
+    async function runRecommendations({ preferApi = true } = {}) {
+        const interestInput = document.getElementById("recommendation-interest");
+        const searchInput = document.getElementById("recommendation-search");
+        const list = document.getElementById("recommendation-list");
+        const feedback = document.getElementById("recommendation-feedback");
+
+        if (!(interestInput instanceof HTMLInputElement) ||
+            !(searchInput instanceof HTMLInputElement) ||
+            !list ||
+            !feedback) {
+            return;
+        }
+
+        const interest = interestInput.value.trim();
+        const search = searchInput.value.trim();
+        const interestTokens = tokenizeRecommendationValue(interest);
+        const searchTokens = tokenizeRecommendationValue(search);
+
+        if (!state.projects.length) {
+            feedback.textContent = "Carregando projetos para gerar recomendacoes.";
+            list.textContent = "";
+            return;
+        }
+
+        let recommended = [];
+        let source = "local";
+
+        if (preferApi) {
+            try {
+                const params = new URLSearchParams({
+                    interest,
+                    search,
+                    status: "published",
+                    limit: String(RECOMMENDATION_LIMIT)
+                });
+
+                const response = await fetchJson(`${API_BASE}/projects/recommendations?${params.toString()}`);
+                const items = Array.isArray(response.items) ? response.items : [];
+                recommended = items.map((project, index) => normalizeProject(project, index));
+                source = "api";
+            } catch (_error) {
+                recommended = [];
+            }
+        }
+
+        if (!recommended.length) {
+            recommended = getLocalRecommendations({
+                interestTokens,
+                searchTokens,
+                limit: RECOMMENDATION_LIMIT
+            });
+            source = "local";
+        }
+
+        state.recommendedProjects = recommended;
+        renderRecommendations(list, recommended);
+
+        if (!recommended.length) {
+            feedback.textContent = "Nenhum projeto aderente ao contexto informado.";
+            return;
+        }
+
+        feedback.textContent = `Sugestoes geradas com base em ${source === "api" ? "ranking da API" : "analise local resiliente"}.`;
+    }
+
+    function renderRecommendations(container, projects) {
+        container.textContent = "";
+
+        if (!projects.length) {
+            const empty = document.createElement("li");
+            empty.className = "recommendation-empty";
+            empty.textContent = "Sem recomendacoes disponiveis no momento.";
+            container.append(empty);
+            return;
+        }
+
+        const fragment = document.createDocumentFragment();
+
+        projects.forEach(project => {
+            const item = document.createElement("li");
+            item.className = "recommendation-item card";
+
+            const title = document.createElement("h4");
+            title.textContent = project.title;
+
+            const context = document.createElement("p");
+            const matchedTags = Array.isArray(project.recommendation?.matchedTags)
+                ? project.recommendation.matchedTags.map(formatTag).join(" | ")
+                : "";
+            context.textContent = matchedTags
+                ? `Aderencia: ${matchedTags}`
+                : "Aderencia: baseado em stack e contexto de entrega.";
+
+            const summary = document.createElement("p");
+            summary.textContent = project.summary;
+
+            const actions = document.createElement("div");
+            actions.className = "recommendation-actions";
+
+            const openButton = document.createElement("button");
+            openButton.type = "button";
+            openButton.className = "project-button";
+            openButton.setAttribute("data-recommend-open", project.id);
+            openButton.textContent = "Ver detalhes";
+
+            const repoLink = document.createElement("a");
+            repoLink.href = project.url;
+            repoLink.target = "_blank";
+            repoLink.rel = "noopener noreferrer";
+            repoLink.className = "project-link";
+            repoLink.textContent = "Repositorio";
+
+            actions.append(openButton, repoLink);
+            item.append(title, context, summary, actions);
+            fragment.append(item);
+        });
+
+        container.append(fragment);
+    }
+
+    function getLocalRecommendations({ interestTokens, searchTokens, limit }) {
+        const tokens = [...new Set([...interestTokens, ...searchTokens])];
+
+        const ranked = state.projects
+            .map(project => {
+                const reason = scoreLocalRecommendation(project, tokens);
+                return {
+                    project,
+                    score: reason.score,
+                    reason
+                };
+            })
+            .filter(item => tokens.length === 0 || item.score > 0)
+            .sort((a, b) => b.score - a.score || Number(b.project.year) - Number(a.project.year))
+            .slice(0, limit)
+            .map(item => ({
+                ...item.project,
+                recommendation: item.reason
+            }));
+
+        return ranked;
+    }
+
+    function scoreLocalRecommendation(project, tokens) {
+        const tags = Array.isArray(project.tags) ? project.tags : [];
+        const stack = Array.isArray(project.stack) ? project.stack : [];
+        const content = normalize([project.title, project.summary, project.impact].join(" "));
+
+        const matches = {
+            matchedTags: [],
+            matchedStack: [],
+            matchedTerms: []
+        };
+
+        let score = 0;
+
+        tokens.forEach(token => {
+            if (tags.includes(token)) {
+                matches.matchedTags.push(token);
+                score += 4;
+            }
+
+            const hasStackMatch = stack.some(item => normalize(item).includes(token));
+            if (hasStackMatch) {
+                matches.matchedStack.push(token);
+                score += 2;
+            }
+
+            if (content.includes(token)) {
+                matches.matchedTerms.push(token);
+                score += 1;
+            }
+        });
+
+        score += Math.max(Number(project.year) - 2020, 0) * 0.04;
+
+        return {
+            score: Number(score.toFixed(2)),
+            matchedTags: [...new Set(matches.matchedTags)],
+            matchedStack: [...new Set(matches.matchedStack)],
+            matchedTerms: [...new Set(matches.matchedTerms)]
+        };
     }
 
     function initializeModal() {
@@ -1150,6 +1398,7 @@
             }
         };
 
+        restoreContactDraft(fields);
         const updateCounter = () => {
             if (counter) {
                 counter.textContent = `${messageField.value.length}/1200 caracteres`;
@@ -1164,6 +1413,21 @@
             const eventName = fieldName === "consent" ? "change" : "blur";
             field.addEventListener(eventName, () => validateField(fieldName));
         });
+
+        const persistDraft = debounce(() => {
+            persistContactDraft({
+                name: nameField.value,
+                email: emailField.value,
+                subject: subjectField.value,
+                message: messageField.value,
+                consent: consentField.checked
+            });
+        }, 220);
+
+        [nameField, emailField, subjectField, messageField].forEach(field => {
+            field.addEventListener("input", persistDraft);
+        });
+        consentField.addEventListener("change", persistDraft);
 
         form.addEventListener("submit", async event => {
             event.preventDefault();
@@ -1197,8 +1461,12 @@
                     throw new Error("API offline");
                 }
 
+                const idempotencyKey = buildContactIdempotencyKey(payload);
                 await fetchJson(`${API_BASE}/contacts`, {
                     method: "POST",
+                    headers: {
+                        "Idempotency-Key": idempotencyKey
+                    },
                     body: JSON.stringify(payload)
                 });
 
@@ -1206,6 +1474,7 @@
                 form.reset();
                 updateCounter();
                 clearAllErrors();
+                clearContactDraft();
             } catch (error) {
                 if (error.code === "DUPLICATE_CONTACT") {
                     setFeedback("error", "Mensagem duplicada detectada. Aguarde um pouco antes de reenviar.");
@@ -1262,6 +1531,19 @@
                 link.textContent = " Abrir aplicativo de email";
                 feedback.append(link);
             }
+        }
+
+        function restoreContactDraft(currentFields) {
+            const draft = readContactDraft();
+            if (!draft) {
+                return;
+            }
+
+            currentFields.name.value = String(draft.name || "").slice(0, 120);
+            currentFields.email.value = String(draft.email || "").slice(0, 120);
+            currentFields.subject.value = String(draft.subject || "").slice(0, 120);
+            currentFields.message.value = String(draft.message || "").slice(0, 1200);
+            currentFields.consent.checked = Boolean(draft.consent);
         }
     }
 
@@ -1365,6 +1647,25 @@
         return `mailto:matheussiqueirahub@gmail.com?subject=${subject}&body=${body}`;
     }
 
+    function buildContactIdempotencyKey(payload) {
+        const bucket = Math.floor(Date.now() / (1000 * 60 * 30));
+        const canonical = normalize([
+            payload.name,
+            payload.email,
+            payload.subject,
+            payload.message
+        ].join("|"));
+
+        let hash = 2166136261;
+        for (let index = 0; index < canonical.length; index += 1) {
+            hash ^= canonical.charCodeAt(index);
+            hash = Math.imul(hash, 16777619);
+        }
+
+        const digest = Math.abs(hash >>> 0).toString(36);
+        return `contact-${bucket}-${digest}`;
+    }
+
     function normalizeProject(project, index = 0) {
         const normalizedTags = Array.isArray(project.tags)
             ? project.tags.map(item => sanitizeToken(item)).filter(Boolean)
@@ -1434,6 +1735,14 @@
             .replace(/[\u0300-\u036f]/g, "");
     }
 
+    function tokenizeRecommendationValue(value) {
+        return normalize(value)
+            .split(/[,\s]+/)
+            .map(item => item.trim())
+            .filter(token => token.length >= 2)
+            .slice(0, 12);
+    }
+
     function debounce(callback, delayMs) {
         let timer = null;
 
@@ -1498,6 +1807,39 @@
     function persistRecentProjectIds(recentIds) {
         try {
             safeStorageSet(RECENT_PROJECTS_STORAGE_KEY, JSON.stringify(recentIds.slice(0, 5)));
+        } catch (_error) {
+            // ignore storage errors
+        }
+    }
+
+    function persistContactDraft(payload) {
+        try {
+            safeStorageSet(CONTACT_DRAFT_STORAGE_KEY, JSON.stringify(payload));
+        } catch (_error) {
+            // ignore storage errors
+        }
+    }
+
+    function readContactDraft() {
+        const raw = safeStorageGet(CONTACT_DRAFT_STORAGE_KEY);
+        if (!raw) {
+            return null;
+        }
+
+        try {
+            const parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed !== "object") {
+                return null;
+            }
+            return parsed;
+        } catch (_error) {
+            return null;
+        }
+    }
+
+    function clearContactDraft() {
+        try {
+            window.localStorage.removeItem(CONTACT_DRAFT_STORAGE_KEY);
         } catch (_error) {
             // ignore storage errors
         }

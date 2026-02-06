@@ -110,6 +110,54 @@ class ProjectsService {
         return response;
     }
 
+    async getRecommendations({ interest = "", search = "", status = "published", limit = 4 } = {}) {
+        const perPage = Math.min(Math.max(Number(limit) || 4, 1), 12);
+        const interestTokens = this.#tokenizeRecommendationInput(interest);
+        const searchTokens = this.#tokenizeRecommendationInput(search);
+        const rankingTokens = [...new Set([...interestTokens, ...searchTokens])];
+
+        const cacheKey = `projects:recommendations:${status}:${rankingTokens.join("|")}:${perPage}`;
+        const cached = this.cache.get(cacheKey);
+        if (cached) {
+            return cached;
+        }
+
+        let projects = await this.projectsRepository.list();
+        if (status !== "all") {
+            projects = projects.filter(project => project.status === status);
+        }
+
+        const ranked = projects
+            .map(project => {
+                const recommendation = this.#scoreProjectRecommendation(project, rankingTokens);
+                return {
+                    project,
+                    score: recommendation.score,
+                    reason: recommendation.reason
+                };
+            })
+            .filter(item => rankingTokens.length === 0 || item.score > 0)
+            .sort((a, b) => b.score - a.score || Number(b.project.year) - Number(a.project.year))
+            .slice(0, perPage)
+            .map(item => ({
+                ...item.project,
+                recommendation: item.reason
+            }));
+
+        const response = {
+            query: {
+                interestTokens,
+                searchTokens,
+                totalCandidates: projects.length,
+                limit: perPage
+            },
+            items: ranked
+        };
+
+        this.cache.set(cacheKey, response, 8000);
+        return response;
+    }
+
     async getInsights({ status = "published" } = {}) {
         const cacheKey = `projects:insights:${status}`;
         const cached = this.cache.get(cacheKey);
@@ -249,6 +297,64 @@ class ProjectsService {
 
         this.cache.delByPrefix("projects:");
         return removed;
+    }
+
+    #scoreProjectRecommendation(project, tokens) {
+        const projectTags = Array.isArray(project.tags)
+            ? project.tags.map(item => String(item).toLowerCase())
+            : [];
+        const projectStack = Array.isArray(project.stack)
+            ? project.stack.map(item => String(item).toLowerCase())
+            : [];
+        const searchableText = [project.title, project.summary, project.impact]
+            .map(item => String(item || "").toLowerCase())
+            .join(" ");
+
+        const matches = {
+            tags: [],
+            stack: [],
+            terms: []
+        };
+
+        let score = 0;
+        tokens.forEach(token => {
+            if (projectTags.includes(token)) {
+                matches.tags.push(token);
+                score += 4;
+            }
+
+            const stackHit = projectStack.some(tech => tech.includes(token));
+            if (stackHit) {
+                matches.stack.push(token);
+                score += 2;
+            }
+
+            if (searchableText.includes(token)) {
+                matches.terms.push(token);
+                score += 1;
+            }
+        });
+
+        score += Math.max(Number(project.year) - 2020, 0) * 0.04;
+
+        return {
+            score,
+            reason: {
+                score: Number(score.toFixed(2)),
+                matchedTags: [...new Set(matches.tags)],
+                matchedStack: [...new Set(matches.stack)],
+                matchedTerms: [...new Set(matches.terms)]
+            }
+        };
+    }
+
+    #tokenizeRecommendationInput(value) {
+        return normalizeText(value)
+            .toLowerCase()
+            .split(/[,\s]+/)
+            .map(item => item.trim())
+            .filter(token => token.length >= 2)
+            .slice(0, 12);
     }
 
     #guardAgainstSuspiciousPayload(payload) {

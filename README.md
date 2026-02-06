@@ -1,185 +1,249 @@
-# Portfolio Integrado - Backend
+# Portfolio Integrado - Fullstack Platform
 
-API backend do Portfolio Integrado, projetada para gerenciar projetos, contatos e observabilidade operacional com foco em segurança, escalabilidade e manutenção em produção.
+Plataforma fullstack para apresentar portfolio profissional com foco em descoberta de projetos, analise tecnica, captura de oportunidades comerciais e operacao segura de backend.
 
-## Visão Geral do Backend
+## Visao Geral
 
-O backend atende dois domínios principais:
+O projeto foi estruturado para atender tres objetivos de negocio:
 
-- `Projetos`: catálogo de projetos com status (`draft`/`published`) e exploração pública.
-- `Contatos`: captura de leads públicos e fluxo administrativo de triagem.
+- Exibir projetos com curadoria tecnica, filtros e narrativa de impacto.
+- Aumentar conversao de contatos com fluxo resiliente (validacao, idempotencia e fallback).
+- Demonstrar maturidade de engenharia com frontend moderno, API versionada e observabilidade.
 
-Fluxos críticos:
+Publico-alvo:
 
-1. cliente consulta projetos publicados e insights.
-2. visitante envia contato com validação e proteções anti-spam.
-3. administrador autentica via JWT e gerencia projetos/contatos.
-4. operação acompanha saúde, readiness e métricas da API.
+- recrutadores e liderancas tecnicas;
+- clientes que buscam consultoria/projetos;
+- equipes interessadas no padrao arquitetural adotado.
 
-## Arquitetura Adotada
+## Arquitetura e Decisoes Tecnicas
 
-Arquitetura modular em camadas (monolito modular), inspirada em Clean Architecture:
+Arquitetura geral:
 
-- `application`: regras de negócio e casos de uso.
-- `infrastructure`: persistência, cache, monitoramento e segurança técnica.
-- `interfaces/http`: contratos, rotas e middlewares.
-- `common/config`: utilitários, erros, logging e configuração.
+- `frontend`: SPA leve em HTML/CSS/JS modularizado por responsabilidades no `script.js`.
+- `backend`: monolito modular em Node.js/Express com camadas `application`, `infrastructure`, `interfaces/http`.
+- `data`: persistencia JSON com escrita atomica para simplicidade e baixo custo operacional.
 
-Padrões aplicados:
+Principais decisoes:
 
-- SRP e separação de responsabilidades.
-- DRY em validação, erro e middlewares.
-- composição por injeção de dependências no bootstrap (`buildApp`).
+- API versionada em `/api/v1` para evolucao de contratos sem quebra.
+- Validacao de entrada com `zod` em todas as rotas HTTP.
+- Seguranca por camadas: `helmet`, `hpp`, `cors`, rate-limit, JWT com issuer e lockout de login.
+- Cache in-memory com TTL e limite de entradas para endpoints publicos de leitura.
+- Separacao de responsabilidades por services e repositories para manutenibilidade e testes.
 
-## Melhorias Técnicas Implementadas
+## Stack e Tecnologias
 
-### Segurança e Confiabilidade
+Frontend:
 
-- lockout de autenticação por tentativas inválidas (`AUTH_LOCKED`).
-- JWT com `issuer` e validação consistente no `verify`.
-- `Retry-After` automático para respostas de bloqueio.
-- rate limits com handlers padronizados por contexto (geral, auth, contato).
-- validação robusta com `safeParse` (Zod) e payload de erro consistente.
-- idempotência em criação de contato via header `Idempotency-Key`.
-- proteção anti-spam por duplicidade de mensagem em janela temporal.
+- HTML5 semantico
+- CSS com design tokens e responsividade mobile-first
+- JavaScript moderno (ES modules)
+- Vite (dev/build/preview)
 
-### Performance e Escalabilidade
-
-- cache in-memory com limite máximo de entradas e política de evicção.
-- retorno de cache com `structuredClone` para evitar mutação externa.
-- cache HTTP em endpoints públicos de leitura.
-- endpoint de taxonomia de tags para reduzir agregações no cliente.
-
-### Operação e Observabilidade
-
-- readiness check (`/system/readiness`) com verificação de storage.
-- métricas expandidas: p95/p99, distribuição por método/status, taxa de erro.
-- request context com `requestId` e IP normalizado.
-
-## Novas Features de API
-
-- `GET /api/v1/projects/tags`: distribuição de tags dos projetos.
-- `GET /api/v1/system/readiness`: prontidão de dependências.
-- `GET /api/v1/contacts/:id` (admin): consulta detalhada de contato.
-- `PATCH /api/v1/contacts/:id/status` com `internalNote` e `statusHistory`.
-- `POST /api/v1/contacts` com suporte a idempotência (`Idempotency-Key`).
-
-## Endpoints Principais
-
-Base URL: `/api/v1`
-
-- `GET /health`
-- `GET /system/health`
-- `GET /system/readiness`
-- `GET /system/metrics` (admin)
-- `POST /auth/login`
-- `GET /auth/me` (auth)
-- `GET /projects`
-- `GET /projects/:id`
-- `GET /projects/insights`
-- `GET /projects/tags`
-- `POST /projects` (admin)
-- `PATCH /projects/:id` (admin)
-- `DELETE /projects/:id` (admin)
-- `POST /contacts`
-- `GET /contacts` (admin)
-- `GET /contacts/:id` (admin)
-- `PATCH /contacts/:id/status` (admin)
-
-## Tecnologias Utilizadas
+Backend:
 
 - Node.js 18+
 - Express 4
 - Zod
-- JWT (`jsonwebtoken`)
-- `bcryptjs`
+- JWT (`jsonwebtoken`) + `bcryptjs`
 - `helmet`, `cors`, `hpp`, `express-rate-limit`, `compression`
-- `pino`, `pino-http`
-- persistência em arquivo JSON com escrita atômica
-- testes com `node:test` + `supertest`
+- `pino` e `pino-http`
+- Testes com `node:test` + `supertest`
 
-## Setup e Execução
+## Funcionalidades Principais
 
-### 1. Instalação
+Frontend:
+
+- UI/UX redesenhada com hierarquia visual moderna e acessivel.
+- Explorador de projetos com busca, tag, ordenacao, favoritos, exportacao e compartilhamento de filtros.
+- Modal de detalhes com foco acessivel e historico de visualizacao recente.
+- Assistente de recomendacoes por interesse/contexto com fallback local resiliente.
+- Formulario com validacao, contador, rascunho local e envio idempotente para API.
+
+Backend:
+
+- Autenticacao admin com JWT + lockout por tentativas invalidas.
+- CRUD de projetos com filtros, insights, taxonomia de tags e recomendacoes inteligentes.
+- Captura de contatos com anti-spam, deduplicacao temporal e `Idempotency-Key`.
+- Operacao de contatos com status, historico e endpoint de resumo operacional.
+- Health/readiness checks e metricas de runtime para observabilidade.
+
+## Novas Features Implementadas Nesta Evolucao
+
+1. Recomendacao inteligente de projetos:
+
+- Endpoint `GET /api/v1/projects/recommendations` com ranking por interesse e contexto.
+- Consumo no frontend via painel de descoberta guiada.
+- Fallback local para manter experiencia mesmo com API indisponivel.
+
+2. Resumo operacional de contatos:
+
+- Endpoint admin `GET /api/v1/contacts/summary`.
+- Retorna total, taxa de resolucao, distribuicao por status/fonte e volume diario.
+
+3. Confiabilidade no formulario de contato:
+
+- envio com `Idempotency-Key` no cliente;
+- rascunho automatico em `localStorage` para evitar perda de conversao.
+
+## Estrutura do Projeto
+
+```text
+.
+├── backend/
+│   ├── data/
+│   ├── src/
+│   │   ├── application/
+│   │   ├── common/
+│   │   ├── config/
+│   │   ├── infrastructure/
+│   │   └── interfaces/http/
+│   └── tests/
+├── index.html
+├── style.css
+├── script.js
+├── package.json
+└── README.md
+```
+
+## Setup e Execucao
+
+### Pre-requisitos
+
+- Node.js >= 18
+- npm >= 9
+
+### 1. Instalar dependencias do frontend
+
+```bash
+npm install
+```
+
+### 2. Instalar dependencias do backend
 
 ```bash
 cd backend
 npm install
 ```
 
-### 2. Configuração
+### 3. Configurar ambiente do backend
 
 ```bash
 cp .env.example .env
 ```
 
-Variáveis relevantes (novas):
+Variaveis relevantes:
 
+- `PORT`
+- `API_PREFIX`
+- `DATA_FILE`
+- `JWT_SECRET`
+- `JWT_EXPIRES_IN`
 - `JWT_ISSUER`
+- `ADMIN_EMAIL`
+- `ADMIN_PASSWORD`
+- `CORS_ORIGINS`
+- `RATE_LIMIT_WINDOW_MS`
+- `RATE_LIMIT_MAX`
 - `LOGIN_MAX_ATTEMPTS`
 - `LOGIN_LOCK_WINDOW_MS`
 - `CACHE_MAX_ENTRIES`
 
-### 3. Desenvolvimento
+### 4. Rodar backend
+
+```bash
+cd backend
+npm run dev
+```
+
+### 5. Rodar frontend
 
 ```bash
 npm run dev
 ```
 
-### 4. Produção
+Frontend local: `http://localhost:4173`
+
+### 6. Build de producao (frontend)
 
 ```bash
-npm start
+npm run build
+npm run preview
 ```
 
-### 5. Testes
+## API - Endpoints Relevantes
+
+Publicos:
+
+- `GET /api/v1/health`
+- `GET /api/v1/ready`
+- `GET /api/v1/projects`
+- `GET /api/v1/projects/:id`
+- `GET /api/v1/projects/insights`
+- `GET /api/v1/projects/tags`
+- `GET /api/v1/projects/recommendations`
+- `POST /api/v1/contacts`
+
+Admin:
+
+- `POST /api/v1/auth/login`
+- `GET /api/v1/auth/me`
+- `POST /api/v1/projects`
+- `PATCH /api/v1/projects/:id`
+- `DELETE /api/v1/projects/:id`
+- `GET /api/v1/contacts`
+- `GET /api/v1/contacts/summary`
+- `GET /api/v1/contacts/:id`
+- `PATCH /api/v1/contacts/:id/status`
+- `GET /api/v1/system/metrics`
+
+Contrato OpenAPI (json):
+
+- `GET /api/v1/docs/openapi.json`
+
+## Testes e Qualidade
+
+Backend:
 
 ```bash
+cd backend
 npm test
 ```
 
-## Estrutura do Projeto
+Cenarios cobertos:
 
-```text
-backend/
-├── data/
-├── src/
-│   ├── application/
-│   ├── common/
-│   ├── config/
-│   ├── infrastructure/
-│   │   ├── cache/
-│   │   ├── monitoring/
-│   │   ├── persistence/
-│   │   └── security/
-│   ├── interfaces/
-│   │   └── http/
-│   │       ├── middlewares/
-│   │       ├── routes/
-│   │       └── schemas/
-│   ├── app.js
-│   └── server.js
-├── tests/
-├── .env.example
-└── package.json
-```
+- autenticacao e lockout;
+- criacao/listagem de projetos;
+- insights/tags/recomendacoes;
+- captura de contatos, idempotencia e bloqueio de duplicidade;
+- fluxo administrativo de triagem e resumo operacional.
 
-## Boas Práticas e Padrões
+## Deploy
 
-- API versionada e contratos consistentes.
-- tratamento centralizado de erros com códigos padronizados.
-- middlewares reutilizáveis para segurança/observabilidade.
-- regras de negócio isoladas em services.
-- repositórios desacoplados da camada HTTP.
-- cobertura de testes para fluxos críticos e novas features.
+Sugestao de estrategia:
+
+- frontend em CDN estatico (Vercel/Netlify/GitHub Pages);
+- backend em ambiente Node (Render/Fly/VM);
+- variaveis sensiveis via secret manager;
+- logs centralizados e monitoramento de uptime.
+
+## Boas Praticas Adotadas
+
+- SRP, DRY e separacao por camadas.
+- Validacao de contratos na borda HTTP.
+- Erros padronizados com `requestId` para rastreabilidade.
+- Headers de seguranca e politicas de rate-limit por contexto.
+- Acessibilidade: skip-link, foco visivel, navegação por teclado e `aria-live`.
+- UI responsiva e otimizada para desktop e mobile.
 
 ## Melhorias Futuras
 
-- migração de persistência para PostgreSQL com migrations.
-- refresh tokens com rotação/revogação.
-- RBAC mais granular por escopo.
-- tracing distribuído (OpenTelemetry).
-- testes de carga e hardening contínuo de segurança.
+- Migrar persistencia para PostgreSQL + migrations.
+- Adicionar painel administrativo dedicado para contatos/projetos.
+- Introduzir refresh tokens e revogacao de sessoes.
+- Expandir testes E2E frontend.
+- Integrar tracing distribuido (OpenTelemetry).
 
 Autoria: Matheus Siqueira  
 Website: https://www.matheussiqueira.dev/

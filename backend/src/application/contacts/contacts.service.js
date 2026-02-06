@@ -12,7 +12,7 @@ class ContactsService {
         this.metricsStore = metricsStore;
     }
 
-    async create(payload) {
+    async create(payload, options = {}) {
         if (payload.website) {
             throw new AppError("Payload invalido.", 400, "POTENTIAL_SPAM");
         }
@@ -20,6 +20,17 @@ class ContactsService {
         const fields = [payload.name, payload.email, payload.subject, payload.message];
         if (fields.some(value => includesSuspiciousSqlPattern(value))) {
             throw new AppError("Payload bloqueado por padrao suspeito.", 400, "SUSPICIOUS_PAYLOAD");
+        }
+
+        const idempotencyKey = this.#normalizeIdempotencyKey(options.idempotencyKey);
+        if (idempotencyKey) {
+            const existing = await this.contactsRepository.findByIdempotencyKey(idempotencyKey);
+            if (existing) {
+                return {
+                    contact: existing,
+                    deduplicated: true
+                };
+            }
         }
 
         const normalizedEmail = normalizeText(payload.email).toLowerCase();
@@ -40,6 +51,15 @@ class ContactsService {
             message: normalizedMessage,
             source: normalizeText(payload.source || "portfolio-site"),
             status: "new",
+            idempotencyKey: idempotencyKey || null,
+            statusHistory: [
+                {
+                    status: "new",
+                    changedAt: createdAt,
+                    actor: "system",
+                    note: "Contato recebido"
+                }
+            ],
             createdAt,
             updatedAt: createdAt
         };
@@ -47,17 +67,63 @@ class ContactsService {
         await this.contactsRepository.create(contact);
         this.metricsStore.incrementContactsCreated();
 
-        return contact;
+        return {
+            contact,
+            deduplicated: false
+        };
     }
 
-    async list({ status = "all", page = 1, limit = 20 }) {
+    async list({ status = "all", page = 1, limit = 20, search = "", source = "", from, to }) {
         const pageNumber = Math.max(Number(page) || 1, 1);
         const perPage = Math.min(Math.max(Number(limit) || 20, 1), 100);
+        const normalizedSearch = normalizeText(search).toLowerCase();
+        const normalizedSource = normalizeText(source).toLowerCase();
+        const fromDate = this.#parseDateFilter(from, "from");
+        const toDate = this.#parseDateFilter(to, "to");
 
         let contacts = await this.contactsRepository.list();
 
         if (status !== "all") {
             contacts = contacts.filter(contact => contact.status === status);
+        }
+
+        if (normalizedSource) {
+            contacts = contacts.filter(contact => String(contact.source || "").toLowerCase() === normalizedSource);
+        }
+
+        if (normalizedSearch) {
+            contacts = contacts.filter(contact => {
+                const corpus = [
+                    contact.name,
+                    contact.email,
+                    contact.subject,
+                    contact.message,
+                    contact.source
+                ]
+                    .map(value => String(value || "").toLowerCase())
+                    .join(" ");
+
+                return corpus.includes(normalizedSearch);
+            });
+        }
+
+        if (fromDate || toDate) {
+            contacts = contacts.filter(contact => {
+                const created = Date.parse(contact.createdAt || "");
+                if (!Number.isFinite(created)) {
+                    return false;
+                }
+
+                if (fromDate && created < fromDate.getTime()) {
+                    return false;
+                }
+
+                if (toDate && created > toDate.getTime()) {
+                    return false;
+                }
+
+                return true;
+            });
         }
 
         contacts = [...contacts].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -76,10 +142,32 @@ class ContactsService {
         };
     }
 
-    async updateStatus(id, status) {
+    async getById(id) {
+        const contact = await this.contactsRepository.findById(id);
+        if (!contact) {
+            throw new AppError("Contato nao encontrado.", 404, "CONTACT_NOT_FOUND");
+        }
+
+        return contact;
+    }
+
+    async updateStatus(id, payload, context = {}) {
+        const normalizedNote = normalizeText(payload.internalNote || "");
+        const actor = normalizeText(context.actor || "admin");
+
         const updated = await this.contactsRepository.updateById(id, contact => ({
             ...contact,
-            status,
+            status: payload.status,
+            internalNote: normalizedNote || contact.internalNote || "",
+            statusHistory: [
+                ...(Array.isArray(contact.statusHistory) ? contact.statusHistory : []),
+                {
+                    status: payload.status,
+                    changedAt: nowIso(),
+                    actor: actor || "admin",
+                    note: normalizedNote || "Atualizacao de status"
+                }
+            ],
             updatedAt: nowIso()
         }));
 
@@ -117,6 +205,41 @@ class ContactsService {
                 { duplicateWindowMinutes: 60 }
             );
         }
+    }
+
+    #normalizeIdempotencyKey(value) {
+        const normalized = normalizeText(value);
+        if (!normalized) {
+            return "";
+        }
+
+        const valid = /^[a-zA-Z0-9._-]{8,120}$/.test(normalized);
+        if (!valid) {
+            throw new AppError(
+                "Idempotency-Key invalido. Use de 8 a 120 caracteres alfanumericos.",
+                400,
+                "INVALID_IDEMPOTENCY_KEY"
+            );
+        }
+
+        return normalized;
+    }
+
+    #parseDateFilter(value, fieldName) {
+        if (!value) {
+            return null;
+        }
+
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) {
+            throw new AppError(
+                `Filtro de data invalido para '${fieldName}'. Utilize formato ISO-8601.`,
+                400,
+                "INVALID_DATE_FILTER"
+            );
+        }
+
+        return parsed;
     }
 }
 

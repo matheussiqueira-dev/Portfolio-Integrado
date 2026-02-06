@@ -1,150 +1,185 @@
-# Portfolio Integrado - Frontend
+# Portfolio Integrado - Backend
 
-Aplicacao frontend do portfolio profissional de Matheus Siqueira, com foco em descoberta de projetos, narrativa tecnica orientada a dados e conversao de contatos.
+API backend do Portfolio Integrado, projetada para gerenciar projetos, contatos e observabilidade operacional com foco em segurança, escalabilidade e manutenção em produção.
 
-## Visao Geral do Frontend
+## Visão Geral do Backend
 
-O frontend foi estruturado para atender dois objetivos de negocio:
+O backend atende dois domínios principais:
 
-- fortalecer posicionamento profissional com uma experiencia visual premium
-- facilitar navegacao, avaliacao tecnica e contato em poucos passos
+- `Projetos`: catálogo de projetos com status (`draft`/`published`) e exploração pública.
+- `Contatos`: captura de leads públicos e fluxo administrativo de triagem.
 
-Publico-alvo principal:
+Fluxos críticos:
 
-- recrutadores e liderancas de tecnologia
-- clientes buscando desenvolvimento frontend/full stack
+1. cliente consulta projetos publicados e insights.
+2. visitante envia contato com validação e proteções anti-spam.
+3. administrador autentica via JWT e gerencia projetos/contatos.
+4. operação acompanha saúde, readiness e métricas da API.
 
-Fluxos centrais da experiencia:
+## Arquitetura Adotada
 
-1. entendimento do posicionamento e propostas de valor
-2. exploracao de projetos por filtros, busca, ordenacao e favoritos
-3. consumo de insights tecnicos agregados pela API
-4. envio de contato com fallback resiliente para email
+Arquitetura modular em camadas (monolito modular), inspirada em Clean Architecture:
 
-## Analise Tecnica Executada
+- `application`: regras de negócio e casos de uso.
+- `infrastructure`: persistência, cache, monitoramento e segurança técnica.
+- `interfaces/http`: contratos, rotas e middlewares.
+- `common/config`: utilitários, erros, logging e configuração.
 
-Pontos analisados no frontend:
+Padrões aplicados:
 
-- arquitetura de estado e eventos da camada de interface
-- custo de renderizacao e atualizacao do grid de projetos
-- consistencia visual e componentes reutilizaveis
-- acessibilidade (teclado, foco, semantica, feedbacks ARIA)
-- SEO on-page e estruturacao de metadados
-- responsividade em desktop/tablet/mobile
+- SRP e separação de responsabilidades.
+- DRY em validação, erro e middlewares.
+- composição por injeção de dependências no bootstrap (`buildApp`).
 
-Decisoes de melhoria aplicadas:
+## Melhorias Técnicas Implementadas
 
-- consolidacao de design tokens e componentes visuais consistentes
-- sincronizacao de filtros com URL para compartilhamento de contexto
-- adicao de recursos de produtividade no explorador (share/export/historico recente)
-- melhorias de acessibilidade em feedback, navegação e estados interativos
-- pipeline de build com Vite para empacotamento e preview consistente
+### Segurança e Confiabilidade
 
-## Stack e Tecnologias
+- lockout de autenticação por tentativas inválidas (`AUTH_LOCKED`).
+- JWT com `issuer` e validação consistente no `verify`.
+- `Retry-After` automático para respostas de bloqueio.
+- rate limits com handlers padronizados por contexto (geral, auth, contato).
+- validação robusta com `safeParse` (Zod) e payload de erro consistente.
+- idempotência em criação de contato via header `Idempotency-Key`.
+- proteção anti-spam por duplicidade de mensagem em janela temporal.
 
-- HTML5 semantico
-- CSS3 (tokens visuais, layout responsivo, motion-control)
-- JavaScript ES2020+
-- Vite (dev server, build e preview)
-- Integracao com API REST (`/api/v1`)
+### Performance e Escalabilidade
 
-## Funcionalidades Principais
+- cache in-memory com limite máximo de entradas e política de evicção.
+- retorno de cache com `structuredClone` para evitar mutação externa.
+- cache HTTP em endpoints públicos de leitura.
+- endpoint de taxonomia de tags para reduzir agregações no cliente.
 
-- explorador de projetos com busca, categoria, ordenacao e favoritos
-- sincronizacao de estado de filtro na URL (`q`, `tag`, `sort`, `fav`)
-- botao de compartilhamento dos filtros ativos
-- exportacao de favoritos em JSON
-- historico de projetos visualizados recentemente
-- modal acessivel com foco gerenciado e suporte a teclado
-- dashboard de insights (categorias, stacks e linha temporal)
-- formulario de contato com validacao robusta e fallback para `mailto`
-- status de conectividade com backend (API online/offline)
+### Operação e Observabilidade
+
+- readiness check (`/system/readiness`) com verificação de storage.
+- métricas expandidas: p95/p99, distribuição por método/status, taxa de erro.
+- request context com `requestId` e IP normalizado.
+
+## Novas Features de API
+
+- `GET /api/v1/projects/tags`: distribuição de tags dos projetos.
+- `GET /api/v1/system/readiness`: prontidão de dependências.
+- `GET /api/v1/contacts/:id` (admin): consulta detalhada de contato.
+- `PATCH /api/v1/contacts/:id/status` com `internalNote` e `statusHistory`.
+- `POST /api/v1/contacts` com suporte a idempotência (`Idempotency-Key`).
+
+## Endpoints Principais
+
+Base URL: `/api/v1`
+
+- `GET /health`
+- `GET /system/health`
+- `GET /system/readiness`
+- `GET /system/metrics` (admin)
+- `POST /auth/login`
+- `GET /auth/me` (auth)
+- `GET /projects`
+- `GET /projects/:id`
+- `GET /projects/insights`
+- `GET /projects/tags`
+- `POST /projects` (admin)
+- `PATCH /projects/:id` (admin)
+- `DELETE /projects/:id` (admin)
+- `POST /contacts`
+- `GET /contacts` (admin)
+- `GET /contacts/:id` (admin)
+- `PATCH /contacts/:id/status` (admin)
+
+## Tecnologias Utilizadas
+
+- Node.js 18+
+- Express 4
+- Zod
+- JWT (`jsonwebtoken`)
+- `bcryptjs`
+- `helmet`, `cors`, `hpp`, `express-rate-limit`, `compression`
+- `pino`, `pino-http`
+- persistência em arquivo JSON com escrita atômica
+- testes com `node:test` + `supertest`
+
+## Setup e Execução
+
+### 1. Instalação
+
+```bash
+cd backend
+npm install
+```
+
+### 2. Configuração
+
+```bash
+cp .env.example .env
+```
+
+Variáveis relevantes (novas):
+
+- `JWT_ISSUER`
+- `LOGIN_MAX_ATTEMPTS`
+- `LOGIN_LOCK_WINDOW_MS`
+- `CACHE_MAX_ENTRIES`
+
+### 3. Desenvolvimento
+
+```bash
+npm run dev
+```
+
+### 4. Produção
+
+```bash
+npm start
+```
+
+### 5. Testes
+
+```bash
+npm test
+```
 
 ## Estrutura do Projeto
 
 ```text
-Portfolio-Integrado-main/
-├── index.html
-├── style.css
-├── script.js
-├── package.json
-├── package-lock.json
-├── vite.config.mjs
-├── backend/
-│   ├── src/
-│   ├── tests/
-│   └── package.json
-└── README.md
+backend/
+├── data/
+├── src/
+│   ├── application/
+│   ├── common/
+│   ├── config/
+│   ├── infrastructure/
+│   │   ├── cache/
+│   │   ├── monitoring/
+│   │   ├── persistence/
+│   │   └── security/
+│   ├── interfaces/
+│   │   └── http/
+│   │       ├── middlewares/
+│   │       ├── routes/
+│   │       └── schemas/
+│   ├── app.js
+│   └── server.js
+├── tests/
+├── .env.example
+└── package.json
 ```
 
-## Setup, Desenvolvimento e Build
+## Boas Práticas e Padrões
 
-### Pre-requisitos
-
-- Node.js 18+
-- npm 9+
-
-### Frontend (Vite)
-
-Instalacao:
-
-```bash
-npm install
-```
-
-Desenvolvimento local:
-
-```bash
-npm run dev
-```
-
-Build de producao:
-
-```bash
-npm run build
-```
-
-Preview do build:
-
-```bash
-npm run preview
-```
-
-Observacao: o `vite.config.mjs` inclui proxy `/api` para `http://localhost:3000`, facilitando desenvolvimento integrado com o backend.
-
-### Backend (opcional para integração completa)
-
-```bash
-cd backend
-npm install
-npm run dev
-```
-
-Testes backend:
-
-```bash
-cd backend
-npm test
-```
-
-## Boas Praticas Adotadas
-
-- design system baseado em tokens (cores, tipografia, espacos, estados)
-- separacao clara de responsabilidades por funcoes de UI e dados
-- atualizacoes de tela previsiveis e sem mutacoes perigosas
-- sanitizacao de dados para renderizacao segura no DOM
-- feedback de estado com `aria-live` e foco visivel
-- degradacao elegante quando a API estiver indisponivel
-- otimização de performance com `content-visibility`, debounce e render incremental
+- API versionada e contratos consistentes.
+- tratamento centralizado de erros com códigos padronizados.
+- middlewares reutilizáveis para segurança/observabilidade.
+- regras de negócio isoladas em services.
+- repositórios desacoplados da camada HTTP.
+- cobertura de testes para fluxos críticos e novas features.
 
 ## Melhorias Futuras
 
-- modularizacao do JavaScript em multiplos arquivos de feature
-- testes E2E do frontend (Playwright/Cypress)
-- i18n (pt-BR/en-US) com detecao de idioma
-- analytics de funil (exploracao -> contato)
-- score automatico de acessibilidade em CI
-- suporte offline com service worker dedicado
+- migração de persistência para PostgreSQL com migrations.
+- refresh tokens com rotação/revogação.
+- RBAC mais granular por escopo.
+- tracing distribuído (OpenTelemetry).
+- testes de carga e hardening contínuo de segurança.
 
 Autoria: Matheus Siqueira  
 Website: https://www.matheussiqueira.dev/

@@ -21,15 +21,15 @@ class UsersRepository {
     async upsertByEmail(email, createOrUpdateFn) {
         let persisted = null;
 
-        await this.database.update(data => {
+        await this.database.update(async data => {
             const index = data.users.findIndex(user => user.email.toLowerCase() === String(email).toLowerCase());
 
             if (index >= 0) {
-                const next = createOrUpdateFn(data.users[index]);
+                const next = await createOrUpdateFn(data.users[index]);
                 data.users[index] = next;
                 persisted = next;
             } else {
-                const created = createOrUpdateFn(null);
+                const created = await createOrUpdateFn(null);
                 data.users.push(created);
                 persisted = created;
             }

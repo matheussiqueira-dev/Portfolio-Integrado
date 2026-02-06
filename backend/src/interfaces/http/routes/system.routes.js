@@ -9,6 +9,14 @@ function createSystemRouter({ systemService, authService, authenticationMiddlewa
     });
 
     router.get(
+        "/readiness",
+        asyncHandler(async (_req, res) => {
+            const readiness = await systemService.getReadiness();
+            res.status(readiness.status === "ready" ? 200 : 503).json(readiness);
+        })
+    );
+
+    router.get(
         "/metrics",
         authenticationMiddleware(authService),
         authorizeRoles("admin"),

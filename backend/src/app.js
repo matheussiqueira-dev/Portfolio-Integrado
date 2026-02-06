@@ -11,6 +11,7 @@ const { ContactsRepository } = require("./infrastructure/persistence/repositorie
 const { UsersRepository } = require("./infrastructure/persistence/repositories/users.repository");
 const { InMemoryCache } = require("./infrastructure/cache/in-memory-cache");
 const { createMetricsStore } = require("./infrastructure/monitoring/metrics-store");
+const { createLoginAttemptStore } = require("./infrastructure/security/login-attempt-store");
 
 const { AuthService } = require("./application/auth/auth.service");
 const { ProjectsService } = require("./application/projects/projects.service");
@@ -38,7 +39,7 @@ const OPEN_API_SPEC = {
     openapi: "3.0.3",
     info: {
         title: "Portfolio Integrado Backend API",
-        version: "1.0.0",
+        version: "1.1.0",
         description: "API versionada para gerenciamento de projetos, contatos e observabilidade do portfolio."
     },
     servers: [{ url: "/api/v1" }],
@@ -47,6 +48,12 @@ const OPEN_API_SPEC = {
             get: {
                 summary: "Health check (atalho)",
                 description: "Atalho para /system/health"
+            }
+        },
+        "/ready": {
+            get: {
+                summary: "Readiness check (atalho)",
+                description: "Atalho para /system/readiness"
             }
         },
         "/system/health": {
@@ -72,12 +79,32 @@ const OPEN_API_SPEC = {
                 summary: "Resumo analitico dos projetos"
             }
         },
+        "/projects/tags": {
+            get: {
+                summary: "Distribuicao de tags dos projetos"
+            }
+        },
         "/contacts": {
             post: {
                 summary: "Registra contato publico"
             },
             get: {
                 summary: "Lista contatos (admin)"
+            }
+        },
+        "/contacts/{id}": {
+            get: {
+                summary: "Detalha contato (admin)"
+            }
+        },
+        "/contacts/{id}/status": {
+            patch: {
+                summary: "Atualiza status de contato (admin)"
+            }
+        },
+        "/system/readiness": {
+            get: {
+                summary: "Readiness check de dependencias"
             }
         }
     }
@@ -96,13 +123,17 @@ async function buildApp({ config, logger }) {
     const contactsRepository = new ContactsRepository(database);
     const usersRepository = new UsersRepository(database);
 
-    const cache = new InMemoryCache();
+    const cache = new InMemoryCache({ maxEntries: config.cacheMaxEntries });
     const metricsStore = createMetricsStore();
+    const loginAttemptStore = createLoginAttemptStore({
+        maxAttempts: config.loginMaxAttempts,
+        lockWindowMs: config.loginLockWindowMs
+    });
 
-    const authService = new AuthService({ usersRepository, config });
+    const authService = new AuthService({ usersRepository, config, loginAttemptStore });
     const projectsService = new ProjectsService({ projectsRepository, cache });
     const contactsService = new ContactsService({ contactsRepository, metricsStore });
-    const systemService = new SystemService({ metricsStore, config });
+    const systemService = new SystemService({ metricsStore, config, database });
 
     await authService.ensureAdminUser();
 
@@ -145,6 +176,11 @@ async function buildApp({ config, logger }) {
 
     api.get("/health", (_req, res) => {
         res.status(200).json(systemService.getHealth());
+    });
+
+    api.get("/ready", async (_req, res) => {
+        const readiness = await systemService.getReadiness();
+        res.status(readiness.status === "ready" ? 200 : 503).json(readiness);
     });
 
     api.get("/docs/openapi.json", (_req, res) => {

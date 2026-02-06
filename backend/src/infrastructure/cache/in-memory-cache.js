@@ -1,6 +1,7 @@
 class InMemoryCache {
-    constructor() {
+    constructor({ maxEntries = 500 } = {}) {
         this.store = new Map();
+        this.maxEntries = Math.max(Number(maxEntries) || 500, 50);
     }
 
     get(key) {
@@ -14,12 +15,15 @@ class InMemoryCache {
             return null;
         }
 
-        return record.value;
+        return cloneSafe(record.value);
     }
 
     set(key, value, ttlMs = 5000) {
+        this.#cleanupExpired();
+        this.#evictIfNeeded();
+
         this.store.set(key, {
-            value,
+            value: cloneSafe(value),
             expiresAt: Date.now() + ttlMs
         });
     }
@@ -31,6 +35,33 @@ class InMemoryCache {
             }
         }
     }
+
+    #cleanupExpired() {
+        const now = Date.now();
+        for (const [key, record] of this.store.entries()) {
+            if (record.expiresAt <= now) {
+                this.store.delete(key);
+            }
+        }
+    }
+
+    #evictIfNeeded() {
+        while (this.store.size >= this.maxEntries) {
+            const oldest = this.store.keys().next().value;
+            if (!oldest) {
+                break;
+            }
+            this.store.delete(oldest);
+        }
+    }
+}
+
+function cloneSafe(value) {
+    if (value === null || value === undefined) {
+        return value;
+    }
+
+    return structuredClone(value);
 }
 
 module.exports = {

@@ -25,6 +25,7 @@ function getConfig(overrides = {}) {
         dataFile: path.resolve(cwd, dataFileFromEnv),
         jwtSecret: process.env.JWT_SECRET || "change-me-super-secret",
         jwtExpiresIn: process.env.JWT_EXPIRES_IN || "30m",
+        jwtIssuer: process.env.JWT_ISSUER || "portfolio-integrado-api",
         adminEmail: process.env.ADMIN_EMAIL || "admin@portfolio.local",
         adminPassword: process.env.ADMIN_PASSWORD || "ChangeMe123!",
         corsOrigins: (process.env.CORS_ORIGINS || "")
@@ -33,7 +34,10 @@ function getConfig(overrides = {}) {
             .filter(Boolean),
         rateLimitWindowMs: toNumber(process.env.RATE_LIMIT_WINDOW_MS, 15 * 60 * 1000),
         rateLimitMax: toNumber(process.env.RATE_LIMIT_MAX, 120),
-        trustProxy: toBoolean(process.env.TRUST_PROXY, false)
+        trustProxy: toBoolean(process.env.TRUST_PROXY, false),
+        loginMaxAttempts: toNumber(process.env.LOGIN_MAX_ATTEMPTS, 5),
+        loginLockWindowMs: toNumber(process.env.LOGIN_LOCK_WINDOW_MS, 10 * 60 * 1000),
+        cacheMaxEntries: toNumber(process.env.CACHE_MAX_ENTRIES, 500)
     };
 
     const merged = { ...config, ...overrides };
@@ -52,6 +56,10 @@ function validateProductionSecurity(config) {
 
     if (!config.adminPassword || config.adminPassword.length < 10) {
         throw new Error("ADMIN_PASSWORD deve ter ao menos 10 caracteres em producao.");
+    }
+
+    if (!config.jwtIssuer || String(config.jwtIssuer).length < 3) {
+        throw new Error("JWT_ISSUER invalido para ambiente de producao.");
     }
 }
 

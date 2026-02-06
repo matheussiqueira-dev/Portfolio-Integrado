@@ -12,7 +12,10 @@ function createAuthRouter({ authService, authRateLimiter }) {
         authRateLimiter,
         validate({ body: loginSchema }),
         asyncHandler(async (req, res) => {
-            const response = await authService.login(req.body.email, req.body.password);
+            const response = await authService.login(req.body.email, req.body.password, {
+                ip: req.clientIp,
+                userAgent: req.headers["user-agent"] || ""
+            });
             res.status(200).json(response);
         })
     );

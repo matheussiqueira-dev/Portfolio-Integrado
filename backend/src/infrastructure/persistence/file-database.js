@@ -29,6 +29,11 @@ class FileDatabase {
         };
     }
 
+    async ping() {
+        await fs.access(this.filePath);
+        return true;
+    }
+
     async update(mutator) {
         this.writeQueue = this.writeQueue.then(async () => {
             const current = await this.read();

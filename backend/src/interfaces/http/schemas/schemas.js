@@ -19,7 +19,7 @@ const projectUpdateSchema = projectCreateSchema.partial();
 
 const projectQuerySchema = z.object({
     search: z.string().max(100).optional(),
-    tag: z.string().max(30).optional(),
+    tag: z.string().max(120).optional(),
     sort: z.enum(["recent", "alpha"]).optional(),
     page: z.coerce.number().int().gte(1).optional(),
     limit: z.coerce.number().int().gte(1).lte(50).optional(),
@@ -27,6 +27,10 @@ const projectQuerySchema = z.object({
 });
 
 const projectInsightsQuerySchema = z.object({
+    status: z.enum(["all", "draft", "published"]).optional()
+});
+
+const projectTagsQuerySchema = z.object({
     status: z.enum(["all", "draft", "published"]).optional()
 });
 
@@ -46,11 +50,16 @@ const contactCreateSchema = z.object({
 const contactListQuerySchema = z.object({
     status: z.enum(["all", "new", "in_progress", "resolved"]).optional(),
     page: z.coerce.number().int().gte(1).optional(),
-    limit: z.coerce.number().int().gte(1).lte(100).optional()
+    limit: z.coerce.number().int().gte(1).lte(100).optional(),
+    search: z.string().max(120).optional(),
+    source: z.string().max(60).optional(),
+    from: z.string().datetime().optional(),
+    to: z.string().datetime().optional()
 });
 
 const contactStatusUpdateSchema = z.object({
-    status: z.enum(["new", "in_progress", "resolved"])
+    status: z.enum(["new", "in_progress", "resolved"]),
+    internalNote: z.string().max(300).optional()
 });
 
 module.exports = {
@@ -59,6 +68,7 @@ module.exports = {
     projectUpdateSchema,
     projectQuerySchema,
     projectInsightsQuerySchema,
+    projectTagsQuerySchema,
     idParamSchema,
     contactCreateSchema,
     contactListQuerySchema,

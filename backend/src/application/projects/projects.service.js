@@ -24,7 +24,10 @@ class ProjectsService {
         }
 
         const normalizedSearch = normalizeText(search).toLowerCase();
-        const normalizedTag = normalizeText(tag).toLowerCase();
+        const normalizedTags = normalizeText(tag)
+            .split(",")
+            .map(item => item.trim().toLowerCase())
+            .filter(Boolean);
 
         let projects = await this.projectsRepository.list();
 
@@ -32,10 +35,10 @@ class ProjectsService {
             projects = projects.filter(project => project.status === status);
         }
 
-        if (normalizedTag) {
+        if (normalizedTags.length) {
             projects = projects.filter(project =>
                 Array.isArray(project.tags) &&
-                project.tags.some(item => String(item).toLowerCase() === normalizedTag)
+                project.tags.some(item => normalizedTags.includes(String(item).toLowerCase()))
             );
         }
 
@@ -69,6 +72,41 @@ class ProjectsService {
         };
 
         this.cache.set(cacheKey, response, 4000);
+        return response;
+    }
+
+    async getTagsSummary({ status = "published" } = {}) {
+        const cacheKey = `projects:tags:${status}`;
+        const cached = this.cache.get(cacheKey);
+        if (cached) {
+            return cached;
+        }
+
+        let projects = await this.projectsRepository.list();
+        if (status !== "all") {
+            projects = projects.filter(project => project.status === status);
+        }
+
+        const tags = Object.entries(
+            projects.reduce((accumulator, project) => {
+                const currentTags = Array.isArray(project.tags) ? project.tags : [];
+                currentTags.forEach(tag => {
+                    const normalized = String(tag).toLowerCase();
+                    accumulator[normalized] = (accumulator[normalized] || 0) + 1;
+                });
+
+                return accumulator;
+            }, {})
+        )
+            .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"))
+            .map(([tag, total]) => ({ tag, total }));
+
+        const response = {
+            totalTags: tags.length,
+            tags
+        };
+
+        this.cache.set(cacheKey, response, 8000);
         return response;
     }
 

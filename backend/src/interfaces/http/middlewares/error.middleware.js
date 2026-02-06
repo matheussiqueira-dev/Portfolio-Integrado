@@ -10,6 +10,10 @@ function errorMiddleware({ logger, config }) {
             ? error
             : new AppError("Erro interno inesperado.", 500, "INTERNAL_ERROR");
 
+        if (appError.code === "AUTH_LOCKED" && appError.details?.retryAfterSeconds) {
+            res.setHeader("Retry-After", String(appError.details.retryAfterSeconds));
+        }
+
         logger.error(
             {
                 requestId: req.requestId,
@@ -25,11 +29,27 @@ function errorMiddleware({ logger, config }) {
             error: {
                 code: appError.code,
                 message: appError.message,
-                details: appError.details,
+                details: normalizeErrorDetails(appError, config.isProduction),
                 requestId: req.requestId
             }
         });
     };
+}
+
+function normalizeErrorDetails(appError, isProduction) {
+    if (!isProduction) {
+        return appError.details;
+    }
+
+    if (appError.code === "VALIDATION_ERROR") {
+        return appError.details;
+    }
+
+    if (appError.code === "AUTH_LOCKED") {
+        return appError.details;
+    }
+
+    return null;
 }
 
 module.exports = {

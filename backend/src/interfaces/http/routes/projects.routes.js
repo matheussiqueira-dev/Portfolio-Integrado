@@ -7,6 +7,7 @@ const {
     projectUpdateSchema,
     projectQuerySchema,
     projectInsightsQuerySchema,
+    projectTagsQuerySchema,
     idParamSchema
 } = require("../schemas/schemas");
 
@@ -32,6 +33,16 @@ function createProjectsRouter({ projectsService, authService }) {
         validate({ query: projectInsightsQuerySchema }),
         asyncHandler(async (req, res) => {
             const data = await projectsService.getInsights(req.query);
+            setPublicCacheHeaders(res);
+            res.status(200).json(data);
+        })
+    );
+
+    router.get(
+        "/tags",
+        validate({ query: projectTagsQuerySchema }),
+        asyncHandler(async (req, res) => {
+            const data = await projectsService.getTagsSummary(req.query);
             setPublicCacheHeaders(res);
             res.status(200).json(data);
         })

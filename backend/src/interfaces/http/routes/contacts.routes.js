@@ -17,11 +17,15 @@ function createContactsRouter({ contactsService, authService, contactRateLimiter
         contactRateLimiter,
         validate({ body: contactCreateSchema }),
         asyncHandler(async (req, res) => {
-            const contact = await contactsService.create(req.body);
-            res.status(201).json({
+            const { contact, deduplicated } = await contactsService.create(req.body, {
+                idempotencyKey: req.headers["idempotency-key"]
+            });
+
+            res.status(deduplicated ? 200 : 201).json({
                 id: contact.id,
                 status: contact.status,
                 createdAt: contact.createdAt,
+                deduplicated,
                 message: "Contato recebido com sucesso."
             });
         })
@@ -38,13 +42,26 @@ function createContactsRouter({ contactsService, authService, contactRateLimiter
         })
     );
 
+    router.get(
+        "/:id",
+        authenticationMiddleware(authService),
+        authorizeRoles("admin"),
+        validate({ params: idParamSchema }),
+        asyncHandler(async (req, res) => {
+            const contact = await contactsService.getById(req.params.id);
+            res.status(200).json(contact);
+        })
+    );
+
     router.patch(
         "/:id/status",
         authenticationMiddleware(authService),
         authorizeRoles("admin"),
         validate({ params: idParamSchema, body: contactStatusUpdateSchema }),
         asyncHandler(async (req, res) => {
-            const updated = await contactsService.updateStatus(req.params.id, req.body.status);
+            const updated = await contactsService.updateStatus(req.params.id, req.body, {
+                actor: req.user.email
+            });
             res.status(200).json(updated);
         })
     );

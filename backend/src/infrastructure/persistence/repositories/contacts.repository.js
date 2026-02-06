@@ -16,6 +16,11 @@ class ContactsRepository {
         return contact;
     }
 
+    async findByIdempotencyKey(idempotencyKey) {
+        const contacts = await this.list();
+        return contacts.find(contact => String(contact.idempotencyKey || "") === String(idempotencyKey || "")) || null;
+    }
+
     async updateById(id, updater) {
         let updated = null;
 

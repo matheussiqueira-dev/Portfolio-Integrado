@@ -72,6 +72,65 @@ class ProjectsService {
         return response;
     }
 
+    async getInsights({ status = "published" } = {}) {
+        const cacheKey = `projects:insights:${status}`;
+        const cached = this.cache.get(cacheKey);
+        if (cached) {
+            return cached;
+        }
+
+        let projects = await this.projectsRepository.list();
+        if (status !== "all") {
+            projects = projects.filter(project => project.status === status);
+        }
+
+        const byStatus = projects.reduce((acc, project) => {
+            const key = String(project.status || "unknown");
+            acc[key] = (acc[key] || 0) + 1;
+            return acc;
+        }, {});
+
+        const byTag = projects.reduce((acc, project) => {
+            const tags = Array.isArray(project.tags) ? project.tags : [];
+            tags.forEach(tag => {
+                const normalized = String(tag).toLowerCase();
+                acc[normalized] = (acc[normalized] || 0) + 1;
+            });
+            return acc;
+        }, {});
+
+        const byYear = projects.reduce((acc, project) => {
+            const year = String(project.year || "unknown");
+            acc[year] = (acc[year] || 0) + 1;
+            return acc;
+        }, {});
+
+        const topStacks = Object.entries(
+            projects.reduce((acc, project) => {
+                const stack = Array.isArray(project.stack) ? project.stack : [];
+                stack.forEach(tech => {
+                    const key = String(tech);
+                    acc[key] = (acc[key] || 0) + 1;
+                });
+                return acc;
+            }, {})
+        )
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 8)
+            .map(([name, total]) => ({ name, total }));
+
+        const insights = {
+            total: projects.length,
+            byStatus,
+            byTag,
+            byYear,
+            topStacks
+        };
+
+        this.cache.set(cacheKey, insights, 8000);
+        return insights;
+    }
+
     async getById(id, options = { includeDrafts: false }) {
         const cacheKey = `projects:item:${id}:${options.includeDrafts ? "all" : "published"}`;
         const cached = this.cache.get(cacheKey);

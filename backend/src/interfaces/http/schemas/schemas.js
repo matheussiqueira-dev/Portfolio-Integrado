@@ -26,6 +26,10 @@ const projectQuerySchema = z.object({
     status: z.enum(["all", "draft", "published"]).optional()
 });
 
+const projectInsightsQuerySchema = z.object({
+    status: z.enum(["all", "draft", "published"]).optional()
+});
+
 const idParamSchema = z.object({
     id: z.string().min(5).max(100)
 });
@@ -54,6 +58,7 @@ module.exports = {
     projectCreateSchema,
     projectUpdateSchema,
     projectQuerySchema,
+    projectInsightsQuerySchema,
     idParamSchema,
     contactCreateSchema,
     contactListQuerySchema,

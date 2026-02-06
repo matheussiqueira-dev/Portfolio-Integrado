@@ -22,14 +22,22 @@ class ContactsService {
             throw new AppError("Payload bloqueado por padrao suspeito.", 400, "SUSPICIOUS_PAYLOAD");
         }
 
+        const normalizedEmail = normalizeText(payload.email).toLowerCase();
+        const normalizedMessage = normalizeText(payload.message);
+
+        await this.#guardAgainstDuplicateRecentContact({
+            email: normalizedEmail,
+            message: normalizedMessage
+        });
+
         const createdAt = nowIso();
 
         const contact = {
             id: createId("contact"),
             name: normalizeText(payload.name),
-            email: normalizeText(payload.email).toLowerCase(),
+            email: normalizedEmail,
             subject: normalizeText(payload.subject),
-            message: normalizeText(payload.message),
+            message: normalizedMessage,
             source: normalizeText(payload.source || "portfolio-site"),
             status: "new",
             createdAt,
@@ -80,6 +88,35 @@ class ContactsService {
         }
 
         return updated;
+    }
+
+    async #guardAgainstDuplicateRecentContact({ email, message }) {
+        const contacts = await this.contactsRepository.list();
+        const normalizedTargetMessage = String(message || "").toLowerCase();
+        const duplicateWindowMs = 60 * 60 * 1000;
+
+        const hasRecentDuplicate = contacts.some(contact => {
+            if (String(contact.email || "").toLowerCase() !== String(email || "").toLowerCase()) {
+                return false;
+            }
+
+            const previousMessage = normalizeText(contact.message).toLowerCase();
+            if (previousMessage !== normalizedTargetMessage) {
+                return false;
+            }
+
+            const elapsed = Date.now() - Date.parse(contact.createdAt || "");
+            return Number.isFinite(elapsed) && elapsed >= 0 && elapsed <= duplicateWindowMs;
+        });
+
+        if (hasRecentDuplicate) {
+            throw new AppError(
+                "Mensagem duplicada detectada em curto intervalo.",
+                409,
+                "DUPLICATE_CONTACT",
+                { duplicateWindowMinutes: 60 }
+            );
+        }
     }
 }
 

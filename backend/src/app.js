@@ -67,6 +67,11 @@ const OPEN_API_SPEC = {
                 summary: "Cria projeto (admin)"
             }
         },
+        "/projects/insights": {
+            get: {
+                summary: "Resumo analitico dos projetos"
+            }
+        },
         "/contacts": {
             post: {
                 summary: "Registra contato publico"

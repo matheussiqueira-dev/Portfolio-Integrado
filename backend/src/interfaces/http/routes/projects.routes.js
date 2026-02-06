@@ -6,8 +6,13 @@ const {
     projectCreateSchema,
     projectUpdateSchema,
     projectQuerySchema,
+    projectInsightsQuerySchema,
     idParamSchema
 } = require("../schemas/schemas");
+
+function setPublicCacheHeaders(response) {
+    response.set("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
+}
 
 function createProjectsRouter({ projectsService, authService }) {
     const router = express.Router();
@@ -17,6 +22,17 @@ function createProjectsRouter({ projectsService, authService }) {
         validate({ query: projectQuerySchema }),
         asyncHandler(async (req, res) => {
             const data = await projectsService.list(req.query);
+            setPublicCacheHeaders(res);
+            res.status(200).json(data);
+        })
+    );
+
+    router.get(
+        "/insights",
+        validate({ query: projectInsightsQuerySchema }),
+        asyncHandler(async (req, res) => {
+            const data = await projectsService.getInsights(req.query);
+            setPublicCacheHeaders(res);
             res.status(200).json(data);
         })
     );
@@ -26,6 +42,7 @@ function createProjectsRouter({ projectsService, authService }) {
         validate({ params: idParamSchema }),
         asyncHandler(async (req, res) => {
             const project = await projectsService.getById(req.params.id);
+            setPublicCacheHeaders(res);
             res.status(200).json(project);
         })
     );

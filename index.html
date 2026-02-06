@@ -4,32 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Matheus Siqueira | Portfolio Frontend, Dados e Full Stack</title>
-    <meta name="description" content="Portfolio profissional de Matheus Siqueira com projetos de dados, backend e frontend, foco em performance, acessibilidade e arquitetura de software.">
-    <meta name="keywords" content="portfolio, frontend, full stack, data analytics, javascript, css, html">
+    <title>Matheus Siqueira | Engenharia de Software, Dados e UX</title>
+    <meta name="description" content="Portfolio profissional de Matheus Siqueira com foco em engenharia de software, design de produto, performance e dados.">
+    <meta name="keywords" content="portfolio, software engineer, frontend, backend, data analytics, ux">
     <meta name="author" content="Matheus Siqueira">
-    <meta name="theme-color" content="#0f766e">
+    <meta name="theme-color" content="#0b1324">
     <meta property="og:type" content="website">
-    <meta property="og:title" content="Matheus Siqueira | Portfolio Frontend, Dados e Full Stack">
-    <meta property="og:description" content="Projetos, experiencia e habilidades com foco em engenharia de software, dados e UX de alta qualidade.">
+    <meta property="og:title" content="Matheus Siqueira | Engenharia de Software, Dados e UX">
+    <meta property="og:description" content="Projetos, especialidades e contato com foco em software de alta qualidade e experiencia do usuario.">
     <meta property="og:url" content="https://matheussiqueirahub.github.io/Portfolio-Integrado/">
     <meta property="og:image" content="https://matheussiqueirahub.github.io/Portfolio-Integrado/cover.svg">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Matheus Siqueira | Portfolio Frontend, Dados e Full Stack">
-    <meta name="twitter:description" content="Projetos, experiencia e habilidades com foco em engenharia de software, dados e UX de alta qualidade.">
+    <meta name="twitter:title" content="Matheus Siqueira | Engenharia de Software, Dados e UX">
+    <meta name="twitter:description" content="Portfolio completo com foco em arquitetura, performance, dados e UI/UX de alto nivel.">
     <meta name="twitter:image" content="https://matheussiqueirahub.github.io/Portfolio-Integrado/cover.svg">
     <link rel="canonical" href="https://matheussiqueirahub.github.io/Portfolio-Integrado/">
     <link rel="manifest" href="site.webmanifest">
+    <meta name="portfolio-api-base" content="/api/v1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
         "@type": "Person",
         "name": "Matheus Siqueira",
-        "jobTitle": "Data Analyst and Full Stack Developer",
+        "jobTitle": "Software Engineer and Data Analyst",
         "url": "https://matheussiqueirahub.github.io/Portfolio-Integrado/",
         "sameAs": [
             "https://www.linkedin.com/in/siqueira-hub/",
@@ -46,280 +47,295 @@
     </script>
 </head>
 <body>
-    <a class="skip-link" href="#main-content">Pular para o conteudo principal</a>
+    <a class="skip-link" href="#conteudo-principal">Pular para o conteudo principal</a>
 
-    <div class="scroll-progress" aria-hidden="true">
-        <span id="scroll-progress-bar"></span>
-    </div>
+    <div class="bg-orb bg-orb--one" aria-hidden="true"></div>
+    <div class="bg-orb bg-orb--two" aria-hidden="true"></div>
 
-    <header class="site-header" id="top">
-        <div class="header-shell">
-            <a class="brand" href="#top" aria-label="Voltar ao inicio">
-                <span class="brand__badge" aria-hidden="true"></span>
+    <header class="site-header" id="topo">
+        <div class="shell header-shell">
+            <a class="brand" href="#topo" aria-label="Voltar ao topo">
+                <span class="brand__mark" aria-hidden="true">MS</span>
                 <span class="brand__text">
                     <strong>Matheus Siqueira</strong>
-                    <span>Frontend | Data | Full Stack</span>
+                    <span>Software • Data • UX</span>
                 </span>
             </a>
 
-            <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Abrir menu de navegacao">
+            <button class="menu-toggle" id="menu-toggle" type="button" aria-expanded="false" aria-controls="nav-list" aria-label="Abrir menu principal">
                 <span aria-hidden="true"></span>
                 <span aria-hidden="true"></span>
                 <span aria-hidden="true"></span>
             </button>
 
             <nav class="main-nav" aria-label="Navegacao principal">
-                <ul id="site-nav" data-open="false">
-                    <li><a href="#sobre">Sobre</a></li>
-                    <li><a href="#especialidades">Especialidades</a></li>
-                    <li><a href="#projetos">Projetos</a></li>
+                <ul id="nav-list" data-open="false">
+                    <li><a href="#inicio">Inicio</a></li>
+                    <li><a href="#solucoes">Especialidades</a></li>
+                    <li><a href="#portfolio">Projetos</a></li>
+                    <li><a href="#insights">Insights</a></li>
                     <li><a href="#jornada">Jornada</a></li>
-                    <li><a href="#habilidades">Habilidades</a></li>
                     <li><a href="#contato">Contato</a></li>
                 </ul>
             </nav>
 
-            <button class="theme-toggle" type="button" aria-label="Alternar tema">
+            <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Ativar tema escuro">
                 <span class="theme-toggle__icon" aria-hidden="true"></span>
                 <span class="theme-toggle__label">Tema claro</span>
             </button>
         </div>
     </header>
 
-    <main id="main-content">
-        <section class="hero section reveal" id="sobre" aria-labelledby="hero-title">
-            <div class="hero-grid">
+    <main id="conteudo-principal">
+        <section class="hero section reveal" id="inicio" aria-labelledby="hero-title">
+            <div class="shell hero-grid">
                 <div>
-                    <p class="eyebrow">Arquitetura frontend com foco em produto e negocio</p>
-                    <h1 id="hero-title">Desenvolvo experiencias digitais modernas, acessiveis e orientadas por dados.</h1>
+                    <p class="eyebrow">Engenharia orientada a produto e negocio</p>
+                    <h1 id="hero-title">Construo interfaces e APIs que escalam com seguranca, performance e experiencia premium.</h1>
                     <p class="hero-summary">
-                        Sou Matheus Siqueira. Atuo em analise de dados e evoluo para desenvolvimento full stack,
-                        conectando clareza de produto, performance tecnica e UX de alto nivel.
+                        Desenvolvedor com foco em arquitetura, qualidade de codigo e design de experiencia.
+                        Integro frontend, backend e dados para transformar requisitos em resultados mensuraveis.
                     </p>
+
                     <div class="hero-actions">
-                        <a class="btn btn--primary" href="#projetos">Ver projetos</a>
-                        <a class="btn btn--ghost" href="#contato">Iniciar conversa</a>
+                        <a class="btn btn--primary" href="#portfolio">Explorar projetos</a>
+                        <a class="btn btn--ghost" href="#contato">Solicitar contato</a>
                     </div>
-                    <ul class="social-links" aria-label="Redes profissionais">
-                        <li><a href="mailto:matheussiqueirahub@gmail.com">Email</a></li>
-                        <li><a href="https://linkedin.com/in/siqueira-hub" target="_blank" rel="noopener noreferrer">LinkedIn</a></li>
-                        <li><a href="https://github.com/matheussiqueirahub" target="_blank" rel="noopener noreferrer">GitHub</a></li>
-                    </ul>
+
+                    <div class="hero-kpis" aria-label="Indicadores profissionais">
+                        <article class="kpi-card">
+                            <p class="kpi-card__value" data-counter="20" data-suffix="+">0</p>
+                            <p class="kpi-card__label">Projetos aplicados</p>
+                        </article>
+                        <article class="kpi-card">
+                            <p class="kpi-card__value" data-counter="4" data-suffix="+">0</p>
+                            <p class="kpi-card__label">Anos de experiencia pratica</p>
+                        </article>
+                        <article class="kpi-card">
+                            <p class="kpi-card__value" data-counter="99" data-suffix="%">0</p>
+                            <p class="kpi-card__label">Foco em confiabilidade</p>
+                        </article>
+                    </div>
                 </div>
 
-                <aside class="card status-card reveal" aria-label="Resumo estrategico profissional">
-                    <p class="status-pill">Disponivel para projetos e oportunidades</p>
-                    <h2>Resumo estrategico</h2>
-                    <ul>
-                        <li>Recife, Pernambuco, Brasil</li>
-                        <li>Ingles fluente para colaboracao global</li>
-                        <li>Foco em qualidade de codigo, performance e escalabilidade</li>
-                    </ul>
+                <aside class="card status-card" aria-label="Painel operacional">
+                    <p class="status-pill">Disponivel para projetos e consultorias</p>
+                    <h2>Painel operacional</h2>
                     <p>
-                        Minha abordagem combina engenharia pragmatica, design orientado a usabilidade
-                        e visao analitica para gerar valor real ao usuario final.
+                        O portfolio agora consome dados do backend de forma dinamica,
+                        com fallback local para garantir disponibilidade em qualquer ambiente.
                     </p>
+                    <p class="status-chip status-chip--loading" id="api-health" role="status" aria-live="polite">Conectando API...</p>
+                    <ul class="status-list">
+                        <li>Arquitetura em camadas com servicos desacoplados</li>
+                        <li>Protecoes de seguranca e validacao em todas as entradas</li>
+                        <li>UX orientada a descoberta, clareza e conversao</li>
+                    </ul>
                 </aside>
             </div>
+        </section>
 
-            <div class="metric-grid" aria-label="Indicadores profissionais">
-                <article class="metric-card reveal">
-                    <p class="metric-card__value" data-counter="20" data-suffix="+">0</p>
-                    <p class="metric-card__label">Projetos aplicados em dados e desenvolvimento</p>
-                </article>
-                <article class="metric-card reveal">
-                    <p class="metric-card__value" data-counter="4" data-suffix="+">0</p>
-                    <p class="metric-card__label">Anos de atuacao com performance digital e analytics</p>
-                </article>
-                <article class="metric-card reveal">
-                    <p class="metric-card__value" data-counter="100" data-suffix="%">0</p>
-                    <p class="metric-card__label">Compromisso com experiencia, clareza e melhoria continua</p>
-                </article>
+        <section class="section" id="solucoes" aria-labelledby="specialty-title">
+            <div class="shell">
+                <header class="section-head reveal">
+                    <p class="eyebrow">Especialidades</p>
+                    <h2 id="specialty-title">Entrega ponta a ponta para software moderno</h2>
+                    <p>
+                        Solucoes completas de arquitetura, implementacao e evolucao continua,
+                        priorizando manutenibilidade, observabilidade e experiencia do usuario.
+                    </p>
+                </header>
+
+                <div class="feature-grid">
+                    <article class="card feature-card reveal">
+                        <h3>Arquitetura e Qualidade</h3>
+                        <p>Modelagem de servicos, padroes de codigo e estrategias para reduzir risco em producao.</p>
+                    </article>
+                    <article class="card feature-card reveal">
+                        <h3>Frontend de Alta Conversao</h3>
+                        <p>Interfaces acessiveis, consistentes e responsivas, com foco em clareza e desempenho real.</p>
+                    </article>
+                    <article class="card feature-card reveal">
+                        <h3>Dados para Decisao</h3>
+                        <p>Dashboards, metricas e leitura analitica para orientar roadmap de produto e negocio.</p>
+                    </article>
+                </div>
             </div>
         </section>
 
-        <section class="section" id="especialidades" aria-labelledby="specialty-title">
-            <header class="section-head reveal">
-                <p class="eyebrow">Especialidades</p>
-                <h2 id="specialty-title">Entregas de ponta a ponta para produto, dados e engenharia</h2>
-                <p>
-                    Estruturo interfaces, logica de negocio e indicadores para reduzir friccao operacional,
-                    acelerar decisao e sustentar crescimento da aplicacao.
-                </p>
-            </header>
+        <section class="section" id="portfolio" aria-labelledby="projects-title">
+            <div class="shell">
+                <header class="section-head reveal">
+                    <p class="eyebrow">Portfolio</p>
+                    <h2 id="projects-title">Explorador inteligente de projetos</h2>
+                    <p>
+                        Busca, filtros, favoritos e modal detalhado para facilitar avaliacao tecnica do trabalho entregue.
+                    </p>
+                </header>
 
-            <div class="specialty-grid">
-                <article class="card reveal">
-                    <h3>Data Analytics</h3>
-                    <p>Dashboards, modelagem de metricas e leitura de dados para orientar decisoes com seguranca.</p>
-                </article>
-                <article class="card reveal">
-                    <h3>Frontend Engineering</h3>
-                    <p>Interfaces performaticas com semantica correta, acessibilidade e arquitetura escalavel.</p>
-                </article>
-                <article class="card reveal">
-                    <h3>Product Thinking</h3>
-                    <p>Fluxos com foco em conversao, clareza da jornada e experiencia consistente entre dispositivos.</p>
-                </article>
-            </div>
-        </section>
+                <div class="project-toolbar card reveal" aria-label="Controles de filtro de projetos">
+                    <label class="field" for="project-search">
+                        <span>Buscar</span>
+                        <input id="project-search" type="search" placeholder="Ex.: node, dashboard, api, ux" autocomplete="off">
+                    </label>
 
-        <section class="section" id="projetos" aria-labelledby="projects-title">
-            <header class="section-head reveal">
-                <p class="eyebrow">Portfolio</p>
-                <h2 id="projects-title">Projetos com aplicacao real</h2>
-                <p>
-                    Explore os projetos por filtro, busca e ordenacao. O explorador foi desenhado para facilitar descoberta.
-                </p>
-            </header>
+                    <label class="field" for="project-tag">
+                        <span>Categoria</span>
+                        <select id="project-tag">
+                            <option value="all">Todas</option>
+                        </select>
+                    </label>
 
-            <div class="project-toolbar reveal" aria-label="Controles de exploracao de projetos">
-                <div class="chip-group" role="group" aria-label="Filtro por categoria">
-                    <button class="chip is-active" type="button" data-filter="todos" aria-pressed="true">Todos</button>
-                    <button class="chip" type="button" data-filter="dados" aria-pressed="false">Dados</button>
-                    <button class="chip" type="button" data-filter="frontend" aria-pressed="false">Frontend</button>
-                    <button class="chip" type="button" data-filter="backend" aria-pressed="false">Backend</button>
-                    <button class="chip" type="button" data-filter="python" aria-pressed="false">Python</button>
-                    <button class="chip" type="button" data-filter="iot" aria-pressed="false">IoT</button>
+                    <label class="field" for="project-sort">
+                        <span>Ordenacao</span>
+                        <select id="project-sort">
+                            <option value="recent">Mais recentes</option>
+                            <option value="alpha">A-Z</option>
+                        </select>
+                    </label>
+
+                    <label class="field field--inline" for="favorites-only">
+                        <input id="favorites-only" type="checkbox">
+                        <span>Somente favoritos</span>
+                    </label>
+
+                    <button class="btn btn--ghost" type="button" id="clear-project-filters">Limpar filtros</button>
                 </div>
 
-                <label class="field-search" for="project-search">
-                    <span>Buscar projeto</span>
-                    <input id="project-search" type="search" placeholder="Digite stack, nome ou impacto" autocomplete="off">
-                </label>
-
-                <label class="field-sort" for="project-sort">
-                    <span>Ordenar por</span>
-                    <select id="project-sort">
-                        <option value="relevancia">Relevancia</option>
-                        <option value="recentes">Mais recentes</option>
-                        <option value="alfabetica">A-Z</option>
-                    </select>
-                </label>
+                <p id="project-result-count" class="project-result" role="status" aria-live="polite"></p>
+                <div id="project-grid" class="project-grid" aria-live="polite"></div>
             </div>
+        </section>
 
-            <p id="project-result-count" class="project-result" role="status" aria-live="polite"></p>
-            <div id="project-grid" class="project-grid"></div>
+        <section class="section" id="insights" aria-labelledby="insights-title">
+            <div class="shell">
+                <header class="section-head reveal">
+                    <p class="eyebrow">Insights</p>
+                    <h2 id="insights-title">Visao analitica do portfolio</h2>
+                    <p>
+                        Dados consolidados automaticamente a partir da API para comunicar maturidade tecnica,
+                        stack predominante e distribuicao temporal das entregas.
+                    </p>
+                </header>
+
+                <div class="insights-summary reveal" aria-label="Resumo numerico do portfolio">
+                    <article class="card insight-summary-card">
+                        <p>Total de projetos</p>
+                        <strong id="insight-total">0</strong>
+                    </article>
+                    <article class="card insight-summary-card">
+                        <p>Categorias ativas</p>
+                        <strong id="insight-categories">0</strong>
+                    </article>
+                    <article class="card insight-summary-card">
+                        <p>Tecnologias mapeadas</p>
+                        <strong id="insight-technologies">0</strong>
+                    </article>
+                </div>
+
+                <div class="insights-grid">
+                    <article class="card insight-card reveal">
+                        <h3>Distribuicao por categoria</h3>
+                        <ul id="insight-tags" class="trend-list"></ul>
+                    </article>
+                    <article class="card insight-card reveal">
+                        <h3>Top stacks</h3>
+                        <ul id="insight-stacks" class="trend-list"></ul>
+                    </article>
+                    <article class="card insight-card reveal">
+                        <h3>Linha temporal</h3>
+                        <ul id="insight-years" class="trend-list"></ul>
+                    </article>
+                </div>
+            </div>
         </section>
 
         <section class="section" id="jornada" aria-labelledby="journey-title">
-            <header class="section-head reveal">
-                <p class="eyebrow">Jornada profissional</p>
-                <h2 id="journey-title">Experiencia orientada a resultado e evolucao tecnica constante</h2>
-                <p>
-                    Atuei em ambiente publico e em consultoria digital, sempre com foco em eficiencia,
-                    leitura de dados e melhoria continua de processos.
-                </p>
-            </header>
+            <div class="shell">
+                <header class="section-head reveal">
+                    <p class="eyebrow">Jornada</p>
+                    <h2 id="journey-title">Evolucao continua entre dados, software e produto</h2>
+                    <p>
+                        Historico profissional com foco em impacto operacional, tomada de decisao e excelencia tecnica.
+                    </p>
+                </header>
 
-            <div class="timeline">
-                <article class="timeline-item reveal">
-                    <p class="timeline-item__period">Atual</p>
-                    <h3>Estagiario Analista de Dados - SEFAZ-PE</h3>
-                    <p>Desenvolvimento de dashboards gerenciais para analise de arrecadacao com Power BI, SQL e DAX.</p>
-                </article>
-                <article class="timeline-item reveal">
-                    <p class="timeline-item__period">Historico</p>
-                    <h3>Consultor de Marketing Digital</h3>
-                    <p>Estrategias de SEO e performance com monitoramento de indicadores e foco em ROI.</p>
-                </article>
-                <article class="timeline-item reveal">
-                    <p class="timeline-item__period">Formacao</p>
-                    <h3>ADS + Programacao Full Stack AI</h3>
-                    <p>Capacitacao em arquitetura web, APIs, banco de dados e interfaces de alta qualidade.</p>
-                </article>
-            </div>
-        </section>
-
-        <section class="section" id="habilidades" aria-labelledby="skills-title">
-            <header class="section-head reveal">
-                <p class="eyebrow">Habilidades</p>
-                <h2 id="skills-title">Stack tecnica para entregas sustentaveis</h2>
-                <p>
-                    Capacidade de atuar da analise ao desenvolvimento, com foco em estrutura limpa,
-                    rastreabilidade e manutencao em producao.
-                </p>
-            </header>
-
-            <div class="skills-grid">
-                <article class="card reveal">
-                    <h3>Dados</h3>
-                    <ul class="tag-list">
-                        <li>Power BI</li>
-                        <li>SQL</li>
-                        <li>DAX</li>
-                        <li>ETL</li>
-                        <li>Excel Avancado</li>
-                    </ul>
-                </article>
-                <article class="card reveal">
-                    <h3>Desenvolvimento</h3>
-                    <ul class="tag-list">
-                        <li>JavaScript</li>
-                        <li>Node.js</li>
-                        <li>Python</li>
-                        <li>Flask</li>
-                        <li>Prisma</li>
-                        <li>PostgreSQL</li>
-                    </ul>
-                </article>
-                <article class="card reveal">
-                    <h3>Produto e Qualidade</h3>
-                    <ul class="tag-list">
-                        <li>Acessibilidade</li>
-                        <li>UX Writing</li>
-                        <li>Git e GitHub</li>
-                        <li>Docker</li>
-                        <li>Documentacao Tecnica</li>
-                    </ul>
-                </article>
+                <div class="timeline">
+                    <article class="timeline-item reveal">
+                        <p class="timeline-item__period">Atual</p>
+                        <h3>Estagiario Analista de Dados - SEFAZ-PE</h3>
+                        <p>Dashboards gerenciais e analise de arrecadacao com Power BI, SQL e DAX.</p>
+                    </article>
+                    <article class="timeline-item reveal">
+                        <p class="timeline-item__period">Historico</p>
+                        <h3>Consultor de Marketing Digital</h3>
+                        <p>Estrategias de performance e SEO com foco em ROI e governanca de metricas.</p>
+                    </article>
+                    <article class="timeline-item reveal">
+                        <p class="timeline-item__period">Formacao</p>
+                        <h3>ADS + Programacao Full Stack AI</h3>
+                        <p>Capacitacao em desenvolvimento web, APIs, banco de dados e engenharia de software.</p>
+                    </article>
+                </div>
             </div>
         </section>
 
         <section class="section" id="contato" aria-labelledby="contact-title">
-            <div class="contact-layout">
+            <div class="shell contact-layout">
                 <header class="section-head reveal">
                     <p class="eyebrow">Contato</p>
-                    <h2 id="contact-title">Vamos construir algo relevante para seu negocio</h2>
+                    <h2 id="contact-title">Vamos tirar seu projeto do papel com qualidade de producao</h2>
                     <p>
-                        O formulario valida os dados no cliente e direciona a mensagem para envio rapido por email.
-                        Para contato imediato, tambem disponibilizo canais diretos.
+                        O formulario envia dados para a API quando disponivel e oferece fallback automatico para email.
+                        Isso garante que sua mensagem nunca seja perdida.
                     </p>
                 </header>
 
                 <form id="contact-form" class="card contact-form reveal" novalidate>
                     <div class="form-field">
                         <label for="name">Nome</label>
-                        <input id="name" name="name" type="text" placeholder="Seu nome completo" autocomplete="name" required>
+                        <input id="name" name="name" type="text" autocomplete="name" placeholder="Seu nome completo" required>
                         <p class="field-error" data-error-for="name" aria-live="polite"></p>
                     </div>
 
                     <div class="form-field">
                         <label for="email">Email</label>
-                        <input id="email" name="email" type="email" placeholder="nome@empresa.com" autocomplete="email" required>
+                        <input id="email" name="email" type="email" autocomplete="email" placeholder="nome@empresa.com" required>
                         <p class="field-error" data-error-for="email" aria-live="polite"></p>
                     </div>
 
                     <div class="form-field">
+                        <label for="subject">Assunto</label>
+                        <input id="subject" name="subject" type="text" placeholder="Ex.: API para produto SaaS" required>
+                        <p class="field-error" data-error-for="subject" aria-live="polite"></p>
+                    </div>
+
+                    <div class="form-field">
                         <label for="message">Mensagem</label>
-                        <textarea id="message" name="message" rows="5" maxlength="600" placeholder="Descreva o desafio, escopo e prazo esperado" required></textarea>
-                        <p class="field-hint" id="message-counter" aria-live="polite">0/600 caracteres</p>
+                        <textarea id="message" name="message" rows="6" maxlength="1200" placeholder="Descreva desafio, contexto e prazo esperado" required></textarea>
+                        <p class="field-hint" id="message-counter" aria-live="polite">0/1200 caracteres</p>
                         <p class="field-error" data-error-for="message" aria-live="polite"></p>
                     </div>
 
-                    <button class="btn btn--primary" type="submit">Validar e preparar envio</button>
+                    <label class="consent-field" for="consent">
+                        <input id="consent" type="checkbox" required>
+                        <span>Concordo com o envio dos dados para retorno profissional.</span>
+                    </label>
+                    <p class="field-error" data-error-for="consent" aria-live="polite"></p>
+
+                    <button class="btn btn--primary" id="contact-submit" type="submit">Enviar mensagem</button>
                     <p class="form-feedback" role="status" aria-live="polite"></p>
                 </form>
 
                 <aside class="card contact-card reveal" aria-label="Canais de contato">
                     <h3>Canais diretos</h3>
-                    <p>Escolha o canal mais rapido para iniciarmos a conversa.</p>
+                    <p>Se preferir, inicie por um dos canais abaixo:</p>
                     <ul class="contact-list">
                         <li><a href="mailto:matheussiqueirahub@gmail.com">matheussiqueirahub@gmail.com</a></li>
                         <li><a href="https://linkedin.com/in/siqueira-hub" target="_blank" rel="noopener noreferrer">linkedin.com/in/siqueira-hub</a></li>
                         <li><a href="https://github.com/matheussiqueirahub" target="_blank" rel="noopener noreferrer">github.com/matheussiqueirahub</a></li>
                     </ul>
-                    <button type="button" class="btn btn--ghost" data-copy-email data-email="matheussiqueirahub@gmail.com">Copiar email</button>
+                    <button type="button" class="btn btn--ghost" id="copy-email" data-email="matheussiqueirahub@gmail.com">Copiar email</button>
                     <p class="copy-feedback" role="status" aria-live="polite"></p>
                 </aside>
             </div>
@@ -327,29 +343,34 @@
     </main>
 
     <footer class="site-footer">
-        <p>&copy; <span id="current-year"></span> Matheus Henrique Dias Siqueira. Todos os direitos reservados.</p>
-        <a href="#top">Voltar ao topo</a>
+        <div class="shell footer-shell">
+            <p>&copy; <span id="current-year"></span> Matheus Henrique Dias Siqueira. Todos os direitos reservados.</p>
+            <a href="#topo">Voltar ao topo</a>
+        </div>
     </footer>
 
     <section id="project-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" hidden>
-        <div class="modal__backdrop" data-modal-close></div>
+        <button class="modal__backdrop" type="button" data-modal-close aria-label="Fechar detalhes"></button>
         <div class="modal__panel" role="document">
             <button class="modal__close" type="button" data-modal-close aria-label="Fechar detalhes do projeto">Fechar</button>
-            <h3 id="modal-title">Detalhes do projeto</h3>
+            <h3 id="modal-title"></h3>
             <p id="modal-summary"></p>
             <p id="modal-impact"></p>
             <p id="modal-stack"></p>
-            <a id="modal-link" class="btn btn--primary" href="#" target="_blank" rel="noopener noreferrer">Abrir repositorio</a>
+            <ul id="modal-tags" class="tag-list"></ul>
+            <div class="modal__actions">
+                <a id="modal-link" class="btn btn--primary" href="#" target="_blank" rel="noopener noreferrer">Abrir repositorio</a>
+                <button id="modal-favorite" class="btn btn--ghost" type="button">Favoritar</button>
+            </div>
         </div>
     </section>
 
     <noscript>
         <div class="noscript-warning">
-            Para melhor experiencia, ative o JavaScript no navegador.
+            Para uma experiencia completa, habilite o JavaScript no navegador.
         </div>
     </noscript>
 
     <script src="script.js" defer></script>
 </body>
 </html>
-

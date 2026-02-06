@@ -1,179 +1,159 @@
-# Portfolio Integrado - Backend API
+# Portfolio Integrado
 
-Backend do Portfolio Integrado, projetado para expor dados de projetos, registrar contatos e oferecer recursos administrativos com foco em seguranca, observabilidade e manutencao.
+Portfolio profissional full stack com frontend moderno e backend API seguro para exibicao de projetos, insights tecnicos e captura de contatos.
 
-## Visao Geral do Backend
+## Visao Geral do Projeto
 
-Este backend atende ao dominio de portfolio profissional com duas frentes principais:
+O projeto foi desenhado para apresentar a marca profissional de forma escalavel, com foco em tres objetivos:
 
-- Camada publica: listagem de projetos e recebimento de contatos
-- Camada administrativa: autenticacao, gestao de projetos, gestao de contatos e metricas operacionais
+- comunicar autoridade tecnica (software, dados e UX)
+- facilitar descoberta de projetos por recrutadores e clientes
+- converter visitas em contatos qualificados
 
-## Dominio e Regras de Negocio
+Publico-alvo principal:
 
-### Projetos
+- recrutadores tecnicos
+- gestores de produto e tecnologia
+- clientes que precisam de desenvolvimento sob medida
 
-- Projetos possuem ciclo de vida (`draft` e `published`)
-- Apenas projetos `published` sao expostos no fluxo publico
-- Gestao completa (CRUD) restrita ao perfil `admin`
+Fluxo principal da aplicacao:
 
-### Contatos
+1. usuario navega pela home e entende posicionamento profissional
+2. usuario explora projetos por busca, categoria, ordenacao e favoritos
+3. usuario consulta insights agregados de stack e historico de entregas
+4. usuario envia contato via API (com fallback por email)
 
-- Mensagens publicas sao registradas com status inicial `new`
-- Status evolui para `in_progress` ou `resolved` no fluxo administrativo
-- Endpoint publico possui protecoes anti-spam (rate limit + honeypot)
+## Analise Tecnica e Melhorias Aplicadas
 
-### Usuarios
+Principais pontos identificados na analise inicial:
 
-- Usuario administrador e provisionado automaticamente no bootstrap
-- Login retorna JWT com papel (`role`) para autorizacao baseada em permissoes
+- frontend com dados estaticos e pouca integracao real com backend
+- experiencia de exploracao de projetos ainda limitada para tomada de decisao
+- necessidade de evoluir observabilidade e protecoes anti-spam no backend
+- oportunidades de elevar consistencia visual e hierarquia de informacao
 
-## Arquitetura Adotada
+Melhorias executadas nesta entrega:
 
-Arquitetura em **Monolito Modular** com separacao por camadas inspirada em Clean Architecture:
-
-- `application`: casos de uso e regras de negocio
-- `domain`: modelos de dominio
-- `infrastructure`: persistencia, cache e metricas
-- `interfaces/http`: rotas, middlewares, schemas e contratos de API
-
-Padroes aplicados:
-
-- SRP e separacao clara de responsabilidades
-- DRY em validacao, tratamento de erros e middlewares
-- Composicao de servicos por injecao de dependencias no bootstrap
+- refactor completo de UI/UX com nova arquitetura visual, layout responsivo e acessibilidade
+- frontend com consumo dinamico da API (`/projects` e `/projects/insights`) + fallback local resiliente
+- novo endpoint analitico de projetos para apoiar narrativa orientada a dados
+- protecao anti-spam com bloqueio de contatos duplicados em curto intervalo
+- enriquecimento de metricas operacionais (metodos, erros, p95/p99)
+- cache HTTP para rotas publicas de projetos
+- validacoes e hardening de configuracao para ambiente de producao
+- ampliacao da cobertura de testes da API
 
 ## Tecnologias Utilizadas
 
+### Frontend
+
+- HTML5 semantico
+- CSS3 com design tokens e tema claro/escuro
+- JavaScript (ES2020+)
+- Integracao com API REST
+
+### Backend
+
 - Node.js
-- Express 4
-- Zod (validacao)
-- JWT (`jsonwebtoken`) para autenticacao
-- `bcryptjs` para hash de senha
-- `helmet`, `cors`, `hpp`, `express-rate-limit`, `compression`
-- `pino` e `pino-http` para logging estruturado
+- Express
+- Zod (validacao de contratos)
+- JWT + bcryptjs (autenticacao)
+- Helmet, CORS, HPP, rate-limit, compression
+- Pino / Pino HTTP (observabilidade)
 - Persistencia em arquivo JSON com escrita atomica
-- Testes com `node:test` + `supertest`
 
-## Seguranca e Confiabilidade
+### Qualidade e Testes
 
-Implementado no backend:
+- node:test
+- supertest
 
-- Autenticacao JWT (`Bearer token`)
-- Autorizacao por role (`admin`)
-- Validacao de payload com Zod em body/query/params
-- Protecao contra ataques comuns:
-  - XSS: sanitizacao de campos textuais de entrada
-  - CSRF: guard de `Origin` para metodos mutaveis
-  - SQLi: bloqueio de payload suspeito e ausencia de camada SQL dinamica
-- Rate limiting global, especifico para login e para contato
-- Headers de seguranca com Helmet
-- `x-request-id` por requisicao
-- Tratamento centralizado de excecoes com codigo padrao de erro
-- Graceful shutdown e handlers de `unhandledRejection`/`uncaughtException`
+## Funcionalidades Principais
 
-## API e Contratos
+- explorador de projetos com busca, filtros e ordenacao
+- favoritos persistentes em `localStorage`
+- modal de detalhes de projeto com foco em legibilidade tecnica
+- dashboard de insights (categorias, stacks e distribuicao temporal)
+- status de conectividade com API em tempo real
+- formulario de contato com validacao de campos e fallback para `mailto`
+- endpoint de insights: `GET /api/v1/projects/insights`
+- bloqueio de contato duplicado recente (`DUPLICATE_CONTACT`)
+- metricas operacionais com latencia p95/p99
 
-Prefixo versionado: ` /api/v1 `
+## Instalacao e Uso
 
-### Endpoints principais
+### Pre-requisitos
 
-- `GET /api/v1/health`
-- `GET /api/v1/system/health`
-- `GET /api/v1/docs/openapi.json`
-- `POST /api/v1/auth/login`
-- `GET /api/v1/auth/me` (auth)
-- `GET /api/v1/projects`
-- `GET /api/v1/projects/:id`
-- `POST /api/v1/projects` (admin)
-- `PATCH /api/v1/projects/:id` (admin)
-- `DELETE /api/v1/projects/:id` (admin)
-- `POST /api/v1/contacts`
-- `GET /api/v1/contacts` (admin)
-- `PATCH /api/v1/contacts/:id/status` (admin)
-- `GET /api/v1/system/metrics` (admin)
+- Node.js 18+
+- npm 9+
 
-### Exemplo rapido de login
-
-```bash
-curl -X POST http://localhost:3000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@portfolio.local","password":"ChangeMe123!"}'
-```
-
-## Setup e Execucao
-
-### 1. Instalar dependencias
+### 1) Backend
 
 ```bash
 cd backend
 npm install
-```
-
-### 2. Configurar ambiente
-
-```bash
 cp .env.example .env
-```
-
-### 3. Rodar em desenvolvimento
-
-```bash
 npm run dev
 ```
 
-### 4. Rodar testes
+API padrao: `http://localhost:3000/api/v1`
+
+### 2) Frontend
+
+Opcao simples (modo local com fallback):
+
+- abra `index.html` no navegador
+
+Opcao recomendada (com backend ativo):
+
+- sirva a raiz do projeto com servidor estatico (ex.: `npx serve .`)
+- mantenha o backend rodando
+- ajuste `<meta name="portfolio-api-base" ...>` em `index.html` se a API estiver em outro host
+
+### 3) Testes
 
 ```bash
+cd backend
 npm test
 ```
 
 ## Estrutura do Projeto
 
 ```text
-backend/
-├── data/
-│   └── db.json
-├── src/
-│   ├── application/
-│   ├── bootstrap/
-│   ├── common/
-│   ├── config/
-│   ├── domain/
-│   ├── infrastructure/
-│   │   ├── cache/
-│   │   ├── monitoring/
-│   │   └── persistence/
-│   ├── interfaces/
-│   │   └── http/
-│   │       ├── middlewares/
-│   │       ├── routes/
-│   │       └── schemas/
-│   ├── app.js
-│   └── server.js
-├── tests/
-├── .env.example
-├── .gitignore
-└── package.json
+Portfolio-Integrado-main/
+├── index.html
+├── style.css
+├── script.js
+├── backend/
+│   ├── src/
+│   │   ├── application/
+│   │   ├── common/
+│   │   ├── config/
+│   │   ├── infrastructure/
+│   │   └── interfaces/http/
+│   ├── data/
+│   ├── tests/
+│   └── package.json
+└── README.md
 ```
 
-## Boas Praticas e Padroes Aplicados
+## Boas Praticas Adotadas
 
-- API versionada e contrato OpenAPI
-- Tratamento de erro padronizado e observavel
-- Middlewares reutilizaveis
-- Regras de negocio encapsuladas em services
-- Persistencia isolada por repositorios
-- Testes de integracao cobrindo fluxos criticos
+- separacao por camadas no backend (servicos, repositorios, interfaces)
+- validacao de entrada em body/query/params
+- tratamento centralizado de erros com codigos padronizados
+- principio de fallback para preservar disponibilidade do frontend
+- estrategia de cache para reduzir latencia em consultas publicas
+- componentes de UI com foco em contraste, navegacao por teclado e feedback de estado
+- estado de UI previsivel e atualizacao declarativa no frontend
 
-## Melhorias Futuras
+## Possiveis Melhorias Futuras
 
-- Migrar persistencia para PostgreSQL com migrations
-- Implementar refresh token com revogacao
-- Adicionar RBAC granular por escopo
-- Adicionar filas para processamento assíncrono de contatos
-- Integrar tracing distribuido e APM
-- Implementar testes de carga e chaos engineering
+- migracao de persistencia para PostgreSQL com migrations
+- painel administrativo autenticado para gerenciar projetos e contatos
+- CI/CD com lint, testes e deploy automatizado
+- instrumentacao OpenTelemetry + dashboard de observabilidade
+- internacionalizacao (pt/en) com detecao de idioma
+- testes E2E para fluxos criticos do frontend
 
 Autoria: Matheus Siqueira  
 Website: https://www.matheussiqueira.dev/

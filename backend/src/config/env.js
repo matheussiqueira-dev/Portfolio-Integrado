@@ -36,7 +36,23 @@ function getConfig(overrides = {}) {
         trustProxy: toBoolean(process.env.TRUST_PROXY, false)
     };
 
-    return { ...config, ...overrides };
+    const merged = { ...config, ...overrides };
+    validateProductionSecurity(merged);
+    return merged;
+}
+
+function validateProductionSecurity(config) {
+    if (!config.isProduction) {
+        return;
+    }
+
+    if (!config.jwtSecret || config.jwtSecret === "change-me-super-secret") {
+        throw new Error("JWT_SECRET inseguro para ambiente de producao.");
+    }
+
+    if (!config.adminPassword || config.adminPassword.length < 10) {
+        throw new Error("ADMIN_PASSWORD deve ter ao menos 10 caracteres em producao.");
+    }
 }
 
 module.exports = {

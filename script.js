@@ -1,12 +1,12 @@
 (() => {
     "use strict";
 
-    const PROJECTS = [
+    const FALLBACK_PROJECTS = [
         {
             id: "ferias",
             title: "Sistema de Ferias - Prefeitura de Jaboatao",
             summary: "Plataforma para solicitacao, aprovacao e controle de ferias com trilha de auditoria.",
-            impact: "Padroniza aprovacao gerencial e reduz gargalo operacional em RH.",
+            impact: "Padronizou aprovacao gerencial e reduziu gargalos operacionais de RH.",
             year: 2025,
             stack: ["Node.js", "Prisma", "PostgreSQL", "JavaScript"],
             tags: ["backend", "dados"],
@@ -15,8 +15,8 @@
         {
             id: "aria",
             title: "Projeto Aria - A3",
-            summary: "Implementacao de ambiente no Raspberry Pi com automacoes para setup e manutencao.",
-            impact: "Acelera configuracao de hardware low-cost com scripts reprodutiveis.",
+            summary: "Automacoes de setup para Raspberry Pi com scripts reprodutiveis de manutencao.",
+            impact: "Acelerou configuracao de hardware low-cost para ambientes de prova de conceito.",
             year: 2024,
             stack: ["Linux", "Bash", "Raspberry Pi"],
             tags: ["iot", "backend"],
@@ -26,137 +26,138 @@
             id: "aurora",
             title: "Banco Aurora",
             summary: "Sistema bancario em CLI com autenticacao, transacoes e persistencia local.",
-            impact: "Consolida fundamentos de regra de negocio e modelagem transacional.",
+            impact: "Consolidou fundamentos de modelagem transacional e regra de negocio.",
             year: 2024,
             stack: ["Python", "Typer"],
             tags: ["python", "backend"],
             url: "https://github.com/matheussiqueirahub/banco_aurora"
         },
         {
-            id: "hotelaria",
-            title: "Hotelaria",
-            summary: "Aplicacao para reservas, hospedes e operacao interna com POO.",
-            impact: "Melhora previsibilidade de processo e controle de disponibilidade.",
-            year: 2023,
-            stack: ["Python", "POO"],
-            tags: ["python", "backend"],
-            url: "https://github.com/matheussiqueirahub/hotelaria"
-        },
-        {
-            id: "dashboard",
+            id: "dashboard-tributario",
             title: "Dashboards Tributarios - SEFAZ",
-            summary: "Estruturacao de dashboards para leitura de arrecadacao e performance fiscal.",
-            impact: "Aumenta clareza de indicadores para tomada de decisao estrategica.",
+            summary: "Dashboards para leitura de arrecadacao e monitoramento de performance fiscal.",
+            impact: "Melhorou clareza de indicadores para decisao estrategica.",
             year: 2026,
             stack: ["Power BI", "SQL", "DAX"],
             tags: ["dados"],
             url: "https://github.com/matheussiqueirahub"
         },
         {
-            id: "portfolio",
+            id: "portfolio-integrado",
             title: "Portfolio Integrado",
-            summary: "Refactor de portfolio com design system, acessibilidade e explorador de projetos.",
-            impact: "Melhora descoberta de conteudo, conversao de contato e manutenibilidade.",
+            summary: "Refactor completo de portfolio com design system, API e acessibilidade.",
+            impact: "Aumentou descoberta de conteudo e escalabilidade de manutencao.",
             year: 2026,
-            stack: ["HTML", "CSS", "JavaScript"],
-            tags: ["frontend"],
-            url: "https://github.com/matheussiqueira-dev/Portfolio-Integrado"
+            stack: ["HTML", "CSS", "JavaScript", "Node.js"],
+            tags: ["frontend", "backend"],
+            url: "https://github.com/matheussiqueirahub/Portfolio-Integrado-main"
         }
     ];
 
-    const PROJECT_STATE = {
-        filter: "todos",
-        query: "",
-        sort: "relevancia"
+    const THEME_STORAGE_KEY = "portfolio-theme-v2";
+    const FAVORITES_STORAGE_KEY = "portfolio-favorites-v2";
+    const API_BASE = getApiBase();
+
+    const state = {
+        projects: [],
+        insights: null,
+        dataSource: "loading",
+        filters: {
+            search: "",
+            tag: "all",
+            sort: "recent",
+            favoritesOnly: false
+        },
+        favorites: loadFavoriteIds(),
+        modalProjectId: null,
+        modalTrigger: null
     };
 
-    const STORAGE_KEY = "portfolio-theme";
-    const URL_PARAM_FILTER = "f";
-    const URL_PARAM_QUERY = "q";
-    const URL_PARAM_SORT = "s";
-
-    const SORTERS = {
-        relevancia: projects => [...projects],
-        recentes: projects => [...projects].sort((a, b) => b.year - a.year),
-        alfabetica: projects => [...projects].sort((a, b) => a.title.localeCompare(b.title, "pt-BR"))
-    };
-
-    const VALID_FILTERS = new Set(["todos", "dados", "frontend", "backend", "python", "iot"]);
-    const VALID_SORTS = new Set(Object.keys(SORTERS));
-
-    let modalController = null;
+    let modalAbortController = null;
 
     document.addEventListener("DOMContentLoaded", () => {
         setCurrentYear();
         initializeThemeToggle();
         initializeNavigation();
-        initializeScrollProgress();
-        initializeScrollSpy();
         initializeRevealObserver();
         initializeCounters();
+        initializeScrollSpy();
         initializeProjectExplorer();
-        initializeContactForm();
+        initializeModal();
         initializeCopyEmail();
+        initializeContactForm();
+
+        loadPortfolioData().then(() => {
+            renderTagFilterOptions();
+            renderProjects();
+            renderInsights();
+        });
     });
 
+    function getApiBase() {
+        const apiBaseMeta = document.querySelector('meta[name="portfolio-api-base"]');
+        const value = apiBaseMeta?.getAttribute("content")?.trim() || "/api/v1";
+        return value.replace(/\/+$/, "");
+    }
+
     function setCurrentYear() {
-        const year = document.getElementById("current-year");
-        if (year) {
-            year.textContent = String(new Date().getFullYear());
+        const target = document.getElementById("current-year");
+        if (target) {
+            target.textContent = String(new Date().getFullYear());
         }
     }
 
     function initializeThemeToggle() {
         const root = document.documentElement;
-        const toggle = document.querySelector(".theme-toggle");
-        const label = toggle?.querySelector(".theme-toggle__label");
+        const button = document.getElementById("theme-toggle");
+        const label = button?.querySelector(".theme-toggle__label");
 
-        if (!toggle) {
+        if (!button) {
             return;
         }
 
         const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-        const persisted = safeStorageGet(STORAGE_KEY);
-        const initialTheme = persisted || (prefersDark ? "dark" : "light");
+        const persistedTheme = safeStorageGet(THEME_STORAGE_KEY);
+        const initialTheme = persistedTheme || (prefersDark ? "dark" : "light");
 
         applyTheme(initialTheme);
 
-        toggle.addEventListener("click", () => {
+        button.addEventListener("click", () => {
             const nextTheme = root.dataset.theme === "dark" ? "light" : "dark";
             applyTheme(nextTheme);
-            safeStorageSet(STORAGE_KEY, nextTheme);
+            safeStorageSet(THEME_STORAGE_KEY, nextTheme);
         });
 
         function applyTheme(theme) {
             root.dataset.theme = theme;
-            const isDark = theme === "dark";
-            toggle.setAttribute("aria-label", isDark ? "Ativar tema claro" : "Ativar tema escuro");
+            const darkThemeEnabled = theme === "dark";
+            button.setAttribute("aria-label", darkThemeEnabled ? "Ativar tema claro" : "Ativar tema escuro");
             if (label) {
-                label.textContent = isDark ? "Tema escuro" : "Tema claro";
+                label.textContent = darkThemeEnabled ? "Tema escuro" : "Tema claro";
             }
         }
     }
 
     function initializeNavigation() {
-        const button = document.querySelector(".menu-toggle");
-        const menu = document.getElementById("site-nav");
+        const toggleButton = document.getElementById("menu-toggle");
+        const navList = document.getElementById("nav-list");
 
-        if (!button || !menu) {
+        if (!toggleButton || !navList) {
             return;
         }
 
         const closeMenu = () => {
-            button.setAttribute("aria-expanded", "false");
-            menu.dataset.open = "false";
+            toggleButton.setAttribute("aria-expanded", "false");
+            navList.dataset.open = "false";
         };
 
-        button.addEventListener("click", () => {
-            const isOpen = button.getAttribute("aria-expanded") === "true";
-            button.setAttribute("aria-expanded", String(!isOpen));
-            menu.dataset.open = String(!isOpen);
+        toggleButton.addEventListener("click", () => {
+            const currentlyOpen = toggleButton.getAttribute("aria-expanded") === "true";
+            toggleButton.setAttribute("aria-expanded", String(!currentlyOpen));
+            navList.dataset.open = String(!currentlyOpen);
         });
 
-        menu.addEventListener("click", event => {
+        navList.addEventListener("click", event => {
             if (event.target instanceof HTMLElement && event.target.closest("a")) {
                 closeMenu();
             }
@@ -175,35 +176,6 @@
         });
     }
 
-    function initializeScrollProgress() {
-        const bar = document.getElementById("scroll-progress-bar");
-        if (!bar) {
-            return;
-        }
-
-        let ticking = false;
-
-        const update = () => {
-            const documentHeight = document.documentElement.scrollHeight - window.innerHeight;
-            const current = Math.max(window.scrollY, 0);
-            const percent = documentHeight > 0 ? (current / documentHeight) * 100 : 0;
-            bar.style.width = `${Math.min(100, percent)}%`;
-            ticking = false;
-        };
-
-        const schedule = () => {
-            if (ticking) {
-                return;
-            }
-            ticking = true;
-            window.requestAnimationFrame(update);
-        };
-
-        window.addEventListener("scroll", schedule, { passive: true });
-        window.addEventListener("resize", schedule);
-        schedule();
-    }
-
     function initializeScrollSpy() {
         const links = Array.from(document.querySelectorAll('.main-nav a[href^="#"]'));
         if (!links.length || !window.IntersectionObserver) {
@@ -217,7 +189,7 @@
                 if (!id || !section) {
                     return null;
                 }
-                return { id, link, section };
+                return { id, section, link };
             })
             .filter(Boolean);
 
@@ -225,7 +197,7 @@
             return;
         }
 
-        const setActive = id => {
+        const setCurrent = id => {
             entries.forEach(entry => {
                 if (entry.id === id) {
                     entry.link.setAttribute("aria-current", "true");
@@ -237,9 +209,9 @@
 
         const observer = new IntersectionObserver(
             observed => {
-                observed.forEach(item => {
-                    if (item.isIntersecting) {
-                        setActive(item.target.id);
+                observed.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        setCurrent(entry.target.id);
                     }
                 });
             },
@@ -253,20 +225,20 @@
     }
 
     function initializeRevealObserver() {
-        const elements = document.querySelectorAll(".reveal");
+        const revealElements = document.querySelectorAll(".reveal");
 
-        if (!elements.length) {
+        if (!revealElements.length) {
             return;
         }
 
         if (!window.IntersectionObserver) {
-            elements.forEach(el => el.classList.add("is-visible"));
+            revealElements.forEach(element => element.classList.add("is-visible"));
             return;
         }
 
         const observer = new IntersectionObserver(
-            observed => {
-                observed.forEach(entry => {
+            entries => {
+                entries.forEach(entry => {
                     if (entry.isIntersecting) {
                         entry.target.classList.add("is-visible");
                         observer.unobserve(entry.target);
@@ -276,7 +248,7 @@
             { threshold: 0.14 }
         );
 
-        elements.forEach(element => observer.observe(element));
+        revealElements.forEach(element => observer.observe(element));
     }
 
     function initializeCounters() {
@@ -288,7 +260,7 @@
         const numberFormatter = new Intl.NumberFormat("pt-BR");
         const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-        const renderStatic = element => {
+        const renderFinalState = element => {
             const target = Number(element.getAttribute("data-counter")) || 0;
             const prefix = element.getAttribute("data-prefix") || "";
             const suffix = element.getAttribute("data-suffix") || "";
@@ -296,22 +268,21 @@
         };
 
         if (prefersReducedMotion || !window.IntersectionObserver) {
-            counters.forEach(renderStatic);
+            counters.forEach(renderFinalState);
             return;
         }
 
-        const animate = element => {
+        const animateCounter = element => {
             const target = Number(element.getAttribute("data-counter")) || 0;
             const prefix = element.getAttribute("data-prefix") || "";
             const suffix = element.getAttribute("data-suffix") || "";
-            const duration = 1200;
-            const startedAt = performance.now();
+            const duration = 1100;
+            const start = performance.now();
 
             const tick = now => {
-                const progress = Math.min((now - startedAt) / duration, 1);
+                const progress = Math.min((now - start) / duration, 1);
                 const current = Math.round(target * progress);
                 element.textContent = `${prefix}${numberFormatter.format(current)}${suffix}`;
-
                 if (progress < 1) {
                     window.requestAnimationFrame(tick);
                 }
@@ -321,174 +292,250 @@
         };
 
         const observer = new IntersectionObserver(
-            observed => {
-                observed.forEach(entry => {
+            entries => {
+                entries.forEach(entry => {
                     if (entry.isIntersecting) {
-                        animate(entry.target);
+                        animateCounter(entry.target);
                         observer.unobserve(entry.target);
                     }
                 });
             },
-            { threshold: 0.4 }
+            { threshold: 0.35 }
         );
 
         counters.forEach(counter => observer.observe(counter));
     }
 
     function initializeProjectExplorer() {
-        const grid = document.getElementById("project-grid");
-        const result = document.getElementById("project-result-count");
-        const search = document.getElementById("project-search");
+        const searchInput = document.getElementById("project-search");
+        const tagSelect = document.getElementById("project-tag");
         const sortSelect = document.getElementById("project-sort");
-        const chips = Array.from(document.querySelectorAll(".chip[data-filter]"));
-        const modal = document.getElementById("project-modal");
+        const favoritesOnlyCheckbox = document.getElementById("favorites-only");
+        const clearFiltersButton = document.getElementById("clear-project-filters");
+        const projectGrid = document.getElementById("project-grid");
 
-        if (!grid || !result || !search || !sortSelect || !chips.length || !modal) {
+        if (!searchInput || !tagSelect || !sortSelect || !favoritesOnlyCheckbox || !clearFiltersButton || !projectGrid) {
             return;
         }
 
-        hydrateStateFromUrl();
-
-        search.value = PROJECT_STATE.query;
-        sortSelect.value = PROJECT_STATE.sort;
-        updateChipState(chips, PROJECT_STATE.filter);
-
-        renderProjects();
-
-        chips.forEach(chip => {
-            chip.addEventListener("click", () => {
-                PROJECT_STATE.filter = chip.dataset.filter || "todos";
-                updateChipState(chips, PROJECT_STATE.filter);
-                syncStateToUrl();
-                renderProjects();
-            });
-        });
-
         const handleSearch = debounce(value => {
-            PROJECT_STATE.query = value;
-            syncStateToUrl();
+            state.filters.search = value;
             renderProjects();
         }, 140);
 
-        search.addEventListener("input", event => {
+        searchInput.addEventListener("input", event => {
             handleSearch((event.target.value || "").trim());
         });
 
-        sortSelect.addEventListener("change", event => {
-            const nextSort = event.target.value;
-            PROJECT_STATE.sort = VALID_SORTS.has(nextSort) ? nextSort : "relevancia";
-            syncStateToUrl();
+        tagSelect.addEventListener("change", event => {
+            state.filters.tag = event.target.value || "all";
             renderProjects();
         });
 
-        grid.addEventListener("click", event => {
+        sortSelect.addEventListener("change", event => {
+            state.filters.sort = event.target.value === "alpha" ? "alpha" : "recent";
+            renderProjects();
+        });
+
+        favoritesOnlyCheckbox.addEventListener("change", event => {
+            state.filters.favoritesOnly = Boolean(event.target.checked);
+            renderProjects();
+        });
+
+        clearFiltersButton.addEventListener("click", () => {
+            state.filters = {
+                search: "",
+                tag: "all",
+                sort: "recent",
+                favoritesOnly: false
+            };
+
+            searchInput.value = "";
+            tagSelect.value = "all";
+            sortSelect.value = "recent";
+            favoritesOnlyCheckbox.checked = false;
+            renderProjects();
+        });
+
+        projectGrid.addEventListener("click", event => {
             if (!(event.target instanceof HTMLElement)) {
                 return;
             }
 
-            const detailsButton = event.target.closest("[data-project-id]");
-            if (!detailsButton) {
+            const detailsButton = event.target.closest("[data-project-details]");
+            if (detailsButton) {
+                const projectId = detailsButton.getAttribute("data-project-details") || "";
+                const project = state.projects.find(item => item.id === projectId);
+                if (project) {
+                    openProjectModal(project, detailsButton);
+                }
                 return;
             }
 
-            const id = detailsButton.getAttribute("data-project-id");
-            const project = PROJECTS.find(item => item.id === id);
-            if (!project) {
-                return;
+            const favoriteButton = event.target.closest("[data-project-favorite]");
+            if (favoriteButton) {
+                const projectId = favoriteButton.getAttribute("data-project-favorite") || "";
+                toggleFavorite(projectId);
+                renderProjects();
             }
-
-            openProjectModal(modal, project, detailsButton);
         });
+    }
+
+    function initializeModal() {
+        const modal = document.getElementById("project-modal");
+
+        if (!modal) {
+            return;
+        }
 
         modal.addEventListener("click", event => {
             if (event.target instanceof HTMLElement && event.target.closest("[data-modal-close]")) {
-                closeProjectModal(modal);
+                closeProjectModal();
             }
         });
 
-        function renderProjects() {
-            const filtered = getFilteredProjects();
-            const sorted = SORTERS[PROJECT_STATE.sort](filtered);
-
-            grid.textContent = "";
-
-            if (!sorted.length) {
-                const empty = document.createElement("article");
-                empty.className = "project-empty";
-                empty.textContent = "Nenhum projeto encontrado para o filtro atual. Ajuste os criterios e tente novamente.";
-                grid.append(empty);
-                result.textContent = "0 projetos encontrados.";
-                return;
-            }
-
-            const fragment = document.createDocumentFragment();
-            sorted.forEach(project => {
-                fragment.append(buildProjectCard(project));
-            });
-
-            grid.append(fragment);
-            result.textContent = `${sorted.length} projeto(s) encontrado(s).`;
-        }
-
-        function getFilteredProjects() {
-            const query = normalize(PROJECT_STATE.query);
-
-            return PROJECTS.filter(project => {
-                const filterMatch = PROJECT_STATE.filter === "todos" || project.tags.includes(PROJECT_STATE.filter);
-                if (!filterMatch) {
-                    return false;
+        const favoriteButton = document.getElementById("modal-favorite");
+        if (favoriteButton) {
+            favoriteButton.addEventListener("click", () => {
+                if (!state.modalProjectId) {
+                    return;
                 }
 
-                if (!query) {
-                    return true;
-                }
-
-                const searchable = normalize(
-                    [project.title, project.summary, project.impact, project.stack.join(" "), project.tags.join(" ")].join(" ")
-                );
-
-                return searchable.includes(query);
+                toggleFavorite(state.modalProjectId);
+                refreshModalFavoriteButton();
+                renderProjects();
             });
         }
+    }
 
-        function hydrateStateFromUrl() {
-            const params = new URLSearchParams(window.location.search);
-            const filter = params.get(URL_PARAM_FILTER) || "todos";
-            const query = params.get(URL_PARAM_QUERY) || "";
-            const sort = params.get(URL_PARAM_SORT) || "relevancia";
+    async function loadPortfolioData() {
+        setApiStatus("loading", "Conectando API...");
 
-            PROJECT_STATE.filter = VALID_FILTERS.has(filter) ? filter : "todos";
-            PROJECT_STATE.query = query;
-            PROJECT_STATE.sort = VALID_SORTS.has(sort) ? sort : "relevancia";
+        let projectsFromApi = null;
+        try {
+            const payload = await fetchJson(`${API_BASE}/projects?status=published&limit=50`);
+            if (Array.isArray(payload.items) && payload.items.length) {
+                projectsFromApi = payload.items.map(normalizeProject);
+            }
+        } catch (_error) {
+            projectsFromApi = null;
         }
 
-        function syncStateToUrl() {
-            const params = new URLSearchParams(window.location.search);
-
-            params.delete(URL_PARAM_FILTER);
-            params.delete(URL_PARAM_QUERY);
-            params.delete(URL_PARAM_SORT);
-
-            if (PROJECT_STATE.filter !== "todos") {
-                params.set(URL_PARAM_FILTER, PROJECT_STATE.filter);
-            }
-
-            if (PROJECT_STATE.query) {
-                params.set(URL_PARAM_QUERY, PROJECT_STATE.query);
-            }
-
-            if (PROJECT_STATE.sort !== "relevancia") {
-                params.set(URL_PARAM_SORT, PROJECT_STATE.sort);
-            }
-
-            const next = `${window.location.pathname}${params.toString() ? `?${params}` : ""}`;
-            window.history.replaceState({}, "", next);
+        if (projectsFromApi && projectsFromApi.length) {
+            state.projects = projectsFromApi;
+            state.dataSource = "api";
+            setApiStatus("ok", `API online (${projectsFromApi.length} projetos carregados).`);
+        } else {
+            state.projects = FALLBACK_PROJECTS.map(normalizeProject);
+            state.dataSource = "fallback";
+            setApiStatus("offline", "API indisponivel. Exibindo base local resiliente.");
         }
+
+        try {
+            const insightPayload = await fetchJson(`${API_BASE}/projects/insights?status=published`);
+            state.insights = normalizeInsights(insightPayload, state.projects);
+        } catch (_error) {
+            state.insights = deriveInsights(state.projects);
+        }
+    }
+
+    function renderTagFilterOptions() {
+        const tagSelect = document.getElementById("project-tag");
+        if (!tagSelect) {
+            return;
+        }
+
+        const tags = [...new Set(state.projects.flatMap(project => project.tags))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+        const currentValue = state.filters.tag;
+
+        tagSelect.innerHTML = "";
+
+        const allOption = document.createElement("option");
+        allOption.value = "all";
+        allOption.textContent = "Todas";
+        tagSelect.append(allOption);
+
+        tags.forEach(tag => {
+            const option = document.createElement("option");
+            option.value = tag;
+            option.textContent = formatTag(tag);
+            tagSelect.append(option);
+        });
+
+        tagSelect.value = tags.includes(currentValue) || currentValue === "all" ? currentValue : "all";
+        state.filters.tag = tagSelect.value;
+    }
+
+    function renderProjects() {
+        const grid = document.getElementById("project-grid");
+        const resultCounter = document.getElementById("project-result-count");
+
+        if (!grid || !resultCounter) {
+            return;
+        }
+
+        const projects = getFilteredProjects();
+        grid.textContent = "";
+
+        if (!projects.length) {
+            const emptyState = document.createElement("article");
+            emptyState.className = "project-empty";
+            emptyState.textContent = "Nenhum projeto corresponde aos filtros atuais. Ajuste os criterios e tente novamente.";
+            grid.append(emptyState);
+            resultCounter.textContent = "0 projetos encontrados.";
+            return;
+        }
+
+        const fragment = document.createDocumentFragment();
+        projects.forEach(project => {
+            fragment.append(buildProjectCard(project));
+        });
+
+        grid.append(fragment);
+        const sourceLabel = state.dataSource === "api" ? "dados da API" : "modo local";
+        resultCounter.textContent = `${projects.length} projeto(s) encontrado(s) (${sourceLabel}).`;
+    }
+
+    function getFilteredProjects() {
+        const normalizedSearch = normalize(state.filters.search);
+
+        let filtered = state.projects.filter(project => {
+            if (state.filters.tag !== "all" && !project.tags.includes(state.filters.tag)) {
+                return false;
+            }
+
+            if (state.filters.favoritesOnly && !state.favorites.has(project.id)) {
+                return false;
+            }
+
+            if (!normalizedSearch) {
+                return true;
+            }
+
+            const corpus = normalize([
+                project.title,
+                project.summary,
+                project.impact,
+                project.year,
+                project.stack.join(" "),
+                project.tags.join(" ")
+            ].join(" "));
+
+            return corpus.includes(normalizedSearch);
+        });
+
+        if (state.filters.sort === "alpha") {
+            filtered = [...filtered].sort((a, b) => a.title.localeCompare(b.title, "pt-BR"));
+        } else {
+            filtered = [...filtered].sort((a, b) => Number(b.year) - Number(a.year));
+        }
+
+        return filtered;
     }
 
     function buildProjectCard(project) {
         const card = document.createElement("article");
-        card.className = "project-card reveal is-visible";
+        card.className = "project-card";
 
         const title = document.createElement("h3");
         title.textContent = project.title;
@@ -496,112 +543,259 @@
         const summary = document.createElement("p");
         summary.textContent = project.summary;
 
-        const stack = document.createElement("p");
-        stack.className = "project-card__stack";
-        stack.append(
-            createStrongLabel("Stack:"),
-            document.createTextNode(` ${project.stack.join(" | ")}`)
-        );
-
         const impact = document.createElement("p");
-        impact.className = "project-card__impact";
-        impact.append(
-            createStrongLabel("Impacto:"),
-            document.createTextNode(` ${project.impact}`)
-        );
+        impact.textContent = `Impacto: ${project.impact}`;
 
-        const tagList = document.createElement("ul");
-        tagList.className = "project-card__tags";
-        project.tags.forEach(tag => {
-            const li = document.createElement("li");
-            li.textContent = getTagLabel(tag);
-            tagList.append(li);
-        });
+        const meta = document.createElement("div");
+        meta.className = "project-meta";
+        meta.append(buildMetaChip(String(project.year)));
+        project.tags.forEach(tag => meta.append(buildMetaChip(formatTag(tag))));
 
         const actions = document.createElement("div");
-        actions.className = "project-card__actions";
+        actions.className = "project-actions";
 
         const repoLink = document.createElement("a");
-        repoLink.className = "project-card__link";
+        repoLink.className = "project-link";
         repoLink.href = project.url;
         repoLink.target = "_blank";
         repoLink.rel = "noopener noreferrer";
         repoLink.textContent = "Repositorio";
 
-        const details = document.createElement("button");
-        details.className = "project-card__details";
-        details.type = "button";
-        details.setAttribute("data-project-id", project.id);
-        details.textContent = "Detalhes";
+        const detailsButton = document.createElement("button");
+        detailsButton.className = "project-button";
+        detailsButton.type = "button";
+        detailsButton.setAttribute("data-project-details", project.id);
+        detailsButton.textContent = "Detalhes";
 
-        actions.append(repoLink, details);
-        card.append(title, summary, stack, impact, tagList, actions);
+        const favoriteButton = document.createElement("button");
+        favoriteButton.className = "project-button";
+        favoriteButton.type = "button";
+        favoriteButton.setAttribute("data-project-favorite", project.id);
+
+        const favorite = state.favorites.has(project.id);
+        favoriteButton.textContent = favorite ? "Favorito" : "Favoritar";
+        favoriteButton.classList.toggle("is-favorite", favorite);
+        favoriteButton.setAttribute("aria-pressed", String(favorite));
+
+        actions.append(repoLink, detailsButton, favoriteButton);
+
+        card.append(title, summary, impact, meta, actions);
 
         return card;
     }
 
-    function updateChipState(chips, activeFilter) {
-        chips.forEach(chip => {
-            const isActive = chip.dataset.filter === activeFilter;
-            chip.classList.toggle("is-active", isActive);
-            chip.setAttribute("aria-pressed", String(isActive));
+    function buildMetaChip(content) {
+        const chip = document.createElement("span");
+        chip.textContent = content;
+        return chip;
+    }
+
+    function renderInsights() {
+        const insights = state.insights || deriveInsights(state.projects);
+
+        const total = document.getElementById("insight-total");
+        const categories = document.getElementById("insight-categories");
+        const technologies = document.getElementById("insight-technologies");
+
+        if (total) {
+            total.textContent = String(insights.total || 0);
+        }
+
+        if (categories) {
+            categories.textContent = String(Object.keys(insights.byTag || {}).length);
+        }
+
+        if (technologies) {
+            technologies.textContent = String(insights.technologiesCount || 0);
+        }
+
+        renderTrendList(
+            document.getElementById("insight-tags"),
+            Object.entries(insights.byTag || {}).sort((a, b) => b[1] - a[1]).map(([key, value]) => [formatTag(key), value])
+        );
+
+        renderTrendList(
+            document.getElementById("insight-stacks"),
+            (insights.topStacks || []).map(item => [String(item.name), Number(item.total) || 0])
+        );
+
+        renderTrendList(
+            document.getElementById("insight-years"),
+            Object.entries(insights.byYear || {}).sort((a, b) => Number(b[0]) - Number(a[0]))
+        );
+    }
+
+    function renderTrendList(container, entries) {
+        if (!container) {
+            return;
+        }
+
+        container.textContent = "";
+
+        if (!entries.length) {
+            const empty = document.createElement("li");
+            empty.textContent = "Sem dados para exibir.";
+            container.append(empty);
+            return;
+        }
+
+        const maxValue = Math.max(...entries.map(entry => Number(entry[1]) || 0), 1);
+
+        entries.forEach(([label, rawValue]) => {
+            const value = Number(rawValue) || 0;
+            const item = document.createElement("li");
+
+            const topRow = document.createElement("div");
+            topRow.className = "trend-label";
+
+            const name = document.createElement("span");
+            name.textContent = String(label);
+
+            const total = document.createElement("strong");
+            total.textContent = String(value);
+
+            topRow.append(name, total);
+
+            const bar = document.createElement("div");
+            bar.className = "trend-bar";
+
+            const fill = document.createElement("span");
+            fill.style.width = `${Math.max((value / maxValue) * 100, 3)}%`;
+
+            bar.append(fill);
+            item.append(topRow, bar);
+            container.append(item);
         });
     }
 
-    function getTagLabel(tag) {
-        const map = {
-            dados: "Dados",
-            frontend: "Frontend",
-            backend: "Backend",
-            python: "Python",
-            iot: "IoT"
+    function deriveInsights(projects) {
+        const byTag = {};
+        const byYear = {};
+        const stackTotals = {};
+
+        projects.forEach(project => {
+            byYear[String(project.year)] = (byYear[String(project.year)] || 0) + 1;
+
+            project.tags.forEach(tag => {
+                byTag[tag] = (byTag[tag] || 0) + 1;
+            });
+
+            project.stack.forEach(technology => {
+                stackTotals[technology] = (stackTotals[technology] || 0) + 1;
+            });
+        });
+
+        const topStacks = Object.entries(stackTotals)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 8)
+            .map(([name, total]) => ({ name, total }));
+
+        return {
+            total: projects.length,
+            byTag,
+            byYear,
+            topStacks,
+            technologiesCount: Object.keys(stackTotals).length
         };
-
-        return map[tag] || tag;
     }
 
-    function createStrongLabel(text) {
-        const strong = document.createElement("strong");
-        strong.textContent = text;
-        return strong;
+    function normalizeInsights(payload, currentProjects) {
+        if (!payload || typeof payload !== "object") {
+            return deriveInsights(currentProjects);
+        }
+
+        const normalizedByTag = normalizeMap(payload.byTag);
+        const normalizedByYear = normalizeMap(payload.byYear);
+
+        const topStacks = Array.isArray(payload.topStacks)
+            ? payload.topStacks
+                .map(item => ({
+                    name: sanitizeText(item?.name || ""),
+                    total: Number(item?.total) || 0
+                }))
+                .filter(item => item.name && item.total > 0)
+            : [];
+
+        const technologiesCount = topStacks.length
+            ? new Set(topStacks.map(item => item.name)).size
+            : deriveInsights(currentProjects).technologiesCount;
+
+        return {
+            total: Number(payload.total) || currentProjects.length,
+            byTag: normalizedByTag,
+            byYear: normalizedByYear,
+            topStacks,
+            technologiesCount
+        };
     }
 
-    function openProjectModal(modal, project, triggerElement) {
+    function normalizeMap(value) {
+        if (!value || typeof value !== "object") {
+            return {};
+        }
+
+        return Object.entries(value).reduce((accumulator, [key, count]) => {
+            const normalizedKey = sanitizeText(key).toLowerCase();
+            const normalizedCount = Number(count) || 0;
+
+            if (normalizedKey && normalizedCount > 0) {
+                accumulator[normalizedKey] = normalizedCount;
+            }
+
+            return accumulator;
+        }, {});
+    }
+
+    function openProjectModal(project, triggerElement) {
+        const modal = document.getElementById("project-modal");
         const title = document.getElementById("modal-title");
         const summary = document.getElementById("modal-summary");
         const impact = document.getElementById("modal-impact");
         const stack = document.getElementById("modal-stack");
+        const tags = document.getElementById("modal-tags");
         const link = document.getElementById("modal-link");
 
-        if (!title || !summary || !impact || !stack || !link) {
+        if (!modal || !title || !summary || !impact || !stack || !tags || !link) {
             return;
         }
+
+        state.modalProjectId = project.id;
+        state.modalTrigger = triggerElement instanceof HTMLElement ? triggerElement : null;
 
         title.textContent = project.title;
         summary.textContent = project.summary;
         impact.textContent = `Impacto: ${project.impact}`;
         stack.textContent = `Stack: ${project.stack.join(" | ")}`;
+
+        tags.textContent = "";
+        project.tags.forEach(tag => {
+            const item = document.createElement("li");
+            item.textContent = formatTag(tag);
+            tags.append(item);
+        });
+
         link.href = project.url;
+        refreshModalFavoriteButton();
 
         modal.hidden = false;
         document.body.style.overflow = "hidden";
 
-        modalController?.abort();
-        modalController = new AbortController();
+        modalAbortController?.abort();
+        modalAbortController = new AbortController();
 
         const focusable = modal.querySelectorAll("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])");
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
+        const firstFocusable = focusable[0];
+        const lastFocusable = focusable[focusable.length - 1];
 
-        if (first instanceof HTMLElement) {
-            first.focus();
+        if (firstFocusable instanceof HTMLElement) {
+            firstFocusable.focus();
         }
 
         document.addEventListener(
             "keydown",
             event => {
                 if (event.key === "Escape") {
-                    closeProjectModal(modal, triggerElement);
+                    closeProjectModal();
                     return;
                 }
 
@@ -609,32 +803,69 @@
                     return;
                 }
 
-                const active = document.activeElement;
+                const activeElement = document.activeElement;
 
-                if (event.shiftKey && active === first) {
+                if (event.shiftKey && activeElement === firstFocusable) {
                     event.preventDefault();
-                    if (last instanceof HTMLElement) {
-                        last.focus();
+                    if (lastFocusable instanceof HTMLElement) {
+                        lastFocusable.focus();
                     }
-                } else if (!event.shiftKey && active === last) {
+                } else if (!event.shiftKey && activeElement === lastFocusable) {
                     event.preventDefault();
-                    if (first instanceof HTMLElement) {
-                        first.focus();
+                    if (firstFocusable instanceof HTMLElement) {
+                        firstFocusable.focus();
                     }
                 }
             },
-            { signal: modalController.signal }
+            { signal: modalAbortController.signal }
         );
     }
 
-    function closeProjectModal(modal, focusTarget) {
+    function refreshModalFavoriteButton() {
+        const button = document.getElementById("modal-favorite");
+        if (!(button instanceof HTMLButtonElement) || !state.modalProjectId) {
+            return;
+        }
+
+        const favorite = state.favorites.has(state.modalProjectId);
+        button.textContent = favorite ? "Remover favorito" : "Favoritar";
+        button.setAttribute("aria-pressed", String(favorite));
+        button.classList.toggle("is-favorite", favorite);
+    }
+
+    function closeProjectModal() {
+        const modal = document.getElementById("project-modal");
+        if (!modal) {
+            return;
+        }
+
         modal.hidden = true;
         document.body.style.overflow = "";
-        modalController?.abort();
 
-        if (focusTarget instanceof HTMLElement) {
-            focusTarget.focus();
+        modalAbortController?.abort();
+        modalAbortController = null;
+
+        if (state.modalTrigger instanceof HTMLElement) {
+            state.modalTrigger.focus();
         }
+
+        state.modalProjectId = null;
+        state.modalTrigger = null;
+    }
+
+    function toggleFavorite(projectId) {
+        const normalizedId = String(projectId || "").trim();
+        if (!normalizedId) {
+            return;
+        }
+
+        if (state.favorites.has(normalizedId)) {
+            state.favorites.delete(normalizedId);
+        } else {
+            state.favorites.add(normalizedId);
+        }
+
+        persistFavoriteIds(state.favorites);
     }
 
     function initializeContactForm() {
@@ -644,68 +875,77 @@
         }
 
         const feedback = form.querySelector(".form-feedback");
+        const submitButton = form.querySelector("#contact-submit");
         const counter = form.querySelector("#message-counter");
 
         const nameField = form.elements.namedItem("name");
         const emailField = form.elements.namedItem("email");
+        const subjectField = form.elements.namedItem("subject");
         const messageField = form.elements.namedItem("message");
+        const consentField = form.querySelector("#consent");
 
-        if (!(nameField instanceof HTMLInputElement) || !(emailField instanceof HTMLInputElement) || !(messageField instanceof HTMLTextAreaElement)) {
+        if (!(nameField instanceof HTMLInputElement) ||
+            !(emailField instanceof HTMLInputElement) ||
+            !(subjectField instanceof HTMLInputElement) ||
+            !(messageField instanceof HTMLTextAreaElement) ||
+            !(consentField instanceof HTMLInputElement)) {
             return;
         }
 
         const fields = {
             name: nameField,
             email: emailField,
-            message: messageField
+            subject: subjectField,
+            message: messageField,
+            consent: consentField
         };
 
         const validators = {
             name: value => {
-                const trimmed = value.trim();
-                if (!trimmed) {
-                    return "Informe seu nome.";
-                }
-                if (trimmed.length < 3) {
-                    return "Use pelo menos 3 caracteres no nome.";
-                }
+                const normalized = String(value || "").trim();
+                if (!normalized) return "Informe seu nome.";
+                if (normalized.length < 3) return "Use ao menos 3 caracteres no nome.";
                 return "";
             },
             email: value => {
-                const trimmed = value.trim();
-                if (!trimmed) {
-                    return "Informe seu email.";
-                }
-                const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+                const normalized = String(value || "").trim();
+                if (!normalized) return "Informe seu email.";
+                const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
                 return valid ? "" : "Digite um email valido.";
             },
-            message: value => {
-                const trimmed = value.trim();
-                if (!trimmed) {
-                    return "Escreva uma mensagem.";
-                }
-                if (trimmed.length < 25) {
-                    return "Descreva com pelo menos 25 caracteres para contexto minimo.";
-                }
+            subject: value => {
+                const normalized = String(value || "").trim();
+                if (!normalized) return "Informe o assunto.";
+                if (normalized.length < 4) return "Use ao menos 4 caracteres no assunto.";
                 return "";
+            },
+            message: value => {
+                const normalized = String(value || "").trim();
+                if (!normalized) return "Escreva sua mensagem.";
+                if (normalized.length < 20) return "Descreva com ao menos 20 caracteres.";
+                return "";
+            },
+            consent: value => {
+                return value ? "" : "Voce precisa autorizar o envio dos dados.";
             }
         };
 
         const updateCounter = () => {
             if (counter) {
-                counter.textContent = `${messageField.value.length}/600 caracteres`;
+                counter.textContent = `${messageField.value.length}/1200 caracteres`;
             }
         };
 
         updateCounter();
-
         messageField.addEventListener("input", updateCounter);
 
         Object.keys(fields).forEach(fieldName => {
-            fields[fieldName].addEventListener("blur", () => validateField(fieldName));
+            const field = fields[fieldName];
+            const eventName = fieldName === "consent" ? "change" : "blur";
+            field.addEventListener(eventName, () => validateField(fieldName));
         });
 
-        form.addEventListener("submit", event => {
+        form.addEventListener("submit", async event => {
             event.preventDefault();
 
             const allValid = Object.keys(fields).every(validateField);
@@ -714,49 +954,71 @@
             }
 
             if (!allValid) {
-                feedback.classList.remove("is-success");
-                feedback.classList.add("is-error");
-                feedback.textContent = "Corrija os campos destacados para continuar.";
+                setFeedback("error", "Revise os campos destacados para continuar.");
                 return;
             }
 
-            const name = nameField.value.trim();
-            const email = emailField.value.trim();
-            const message = messageField.value.trim();
+            const payload = {
+                name: nameField.value.trim(),
+                email: emailField.value.trim(),
+                subject: subjectField.value.trim(),
+                message: messageField.value.trim(),
+                source: "portfolio-site",
+                website: ""
+            };
 
-            const subject = encodeURIComponent(`Contato via portfolio - ${name}`);
-            const body = encodeURIComponent(`Nome: ${name}\nEmail: ${email}\n\nMensagem:\n${message}`);
-            const mailtoHref = `mailto:matheussiqueirahub@gmail.com?subject=${subject}&body=${body}`;
+            if (submitButton instanceof HTMLButtonElement) {
+                submitButton.disabled = true;
+                submitButton.textContent = "Enviando...";
+            }
 
-            feedback.classList.remove("is-error");
-            feedback.classList.add("is-success");
-            feedback.textContent = "Mensagem validada com sucesso. ";
+            try {
+                if (state.dataSource === "fallback") {
+                    throw new Error("API offline");
+                }
 
-            const anchor = document.createElement("a");
-            anchor.href = mailtoHref;
-            anchor.textContent = "Abrir aplicativo de email";
-            feedback.append(anchor);
+                await fetchJson(`${API_BASE}/contacts`, {
+                    method: "POST",
+                    body: JSON.stringify(payload)
+                });
 
-            form.reset();
-            updateCounter();
-            clearAllErrors();
+                setFeedback("success", "Mensagem enviada com sucesso. Retornarei em breve.");
+                form.reset();
+                updateCounter();
+                clearAllErrors();
+            } catch (error) {
+                if (error.code === "DUPLICATE_CONTACT") {
+                    setFeedback("error", "Mensagem duplicada detectada. Aguarde um pouco antes de reenviar.");
+                } else if (error.code === "VALIDATION_ERROR") {
+                    setFeedback("error", "Os dados enviados nao passaram na validacao da API.");
+                } else {
+                    const mailtoHref = buildMailtoLink(payload);
+                    setFeedback("error", "API indisponivel. Use o envio manual por email.", mailtoHref);
+                }
+            } finally {
+                if (submitButton instanceof HTMLButtonElement) {
+                    submitButton.disabled = false;
+                    submitButton.textContent = "Enviar mensagem";
+                }
+            }
         });
 
         function validateField(fieldName) {
             const field = fields[fieldName];
-            const error = validators[fieldName](field.value);
-            setError(fieldName, error);
-            return !error;
+            const value = fieldName === "consent" ? field.checked : field.value;
+            const errorMessage = validators[fieldName](value);
+            setFieldError(fieldName, errorMessage);
+            return !errorMessage;
         }
 
-        function setError(fieldName, message) {
+        function setFieldError(fieldName, message) {
             const field = fields[fieldName];
-            const errorSlot = form.querySelector(`[data-error-for="${fieldName}"]`);
-            if (!errorSlot) {
+            const slot = form.querySelector(`[data-error-for="${fieldName}"]`);
+            if (!slot) {
                 return;
             }
 
-            errorSlot.textContent = message;
+            slot.textContent = message;
 
             if (message) {
                 field.setAttribute("aria-invalid", "true");
@@ -766,12 +1028,25 @@
         }
 
         function clearAllErrors() {
-            Object.keys(fields).forEach(fieldName => setError(fieldName, ""));
+            Object.keys(fields).forEach(fieldName => setFieldError(fieldName, ""));
+        }
+
+        function setFeedback(type, text, actionHref = "") {
+            feedback.classList.remove("is-success", "is-error");
+            feedback.classList.add(type === "success" ? "is-success" : "is-error");
+            feedback.textContent = text;
+
+            if (actionHref) {
+                const link = document.createElement("a");
+                link.href = actionHref;
+                link.textContent = " Abrir aplicativo de email";
+                feedback.append(link);
+            }
         }
     }
 
     function initializeCopyEmail() {
-        const button = document.querySelector("[data-copy-email]");
+        const button = document.getElementById("copy-email");
         const feedback = document.querySelector(".copy-feedback");
 
         if (!(button instanceof HTMLButtonElement) || !feedback) {
@@ -788,7 +1063,7 @@
                 if (navigator.clipboard?.writeText) {
                     await navigator.clipboard.writeText(email);
                 } else {
-                    legacyCopy(email);
+                    legacyCopyToClipboard(email);
                 }
 
                 feedback.classList.remove("is-error");
@@ -797,39 +1072,176 @@
             } catch (_error) {
                 feedback.classList.remove("is-success");
                 feedback.classList.add("is-error");
-                feedback.textContent = "Nao foi possivel copiar automaticamente. Use o endereco exibido acima.";
+                feedback.textContent = "Nao foi possivel copiar automaticamente.";
             }
         });
     }
 
-    function legacyCopy(value) {
-        const input = document.createElement("textarea");
-        input.value = value;
-        input.setAttribute("readonly", "true");
-        input.style.position = "absolute";
-        input.style.left = "-9999px";
+    function setApiStatus(status, text) {
+        const badge = document.getElementById("api-health");
+        if (!badge) {
+            return;
+        }
 
-        document.body.append(input);
-        input.select();
-        document.execCommand("copy");
-        document.body.removeChild(input);
+        badge.classList.remove("status-chip--loading", "status-chip--ok", "status-chip--offline");
+
+        if (status === "ok") {
+            badge.classList.add("status-chip--ok");
+        } else if (status === "offline") {
+            badge.classList.add("status-chip--offline");
+        } else {
+            badge.classList.add("status-chip--loading");
+        }
+
+        badge.textContent = text;
+    }
+
+    async function fetchJson(url, options = {}) {
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), 6500);
+
+        try {
+            const response = await fetch(url, {
+                ...options,
+                headers: {
+                    Accept: "application/json",
+                    ...(options.body ? { "Content-Type": "application/json" } : {}),
+                    ...(options.headers || {})
+                },
+                signal: controller.signal
+            });
+
+            const contentType = response.headers.get("content-type") || "";
+            const data = contentType.includes("application/json") ? await response.json() : null;
+
+            if (!response.ok) {
+                const error = new Error(data?.error?.message || `Erro HTTP ${response.status}`);
+                error.status = response.status;
+                error.code = data?.error?.code;
+                throw error;
+            }
+
+            return data;
+        } finally {
+            window.clearTimeout(timeoutId);
+        }
+    }
+
+    function buildMailtoLink(payload) {
+        const subject = encodeURIComponent(`Contato via portfolio - ${payload.subject}`);
+        const body = encodeURIComponent(
+            `Nome: ${payload.name}\nEmail: ${payload.email}\nAssunto: ${payload.subject}\n\nMensagem:\n${payload.message}`
+        );
+
+        return `mailto:matheussiqueirahub@gmail.com?subject=${subject}&body=${body}`;
+    }
+
+    function normalizeProject(project, index = 0) {
+        const normalizedTags = Array.isArray(project.tags)
+            ? project.tags.map(item => sanitizeToken(item)).filter(Boolean)
+            : [];
+
+        const normalizedStack = Array.isArray(project.stack)
+            ? project.stack.map(item => sanitizeText(item)).filter(Boolean)
+            : [];
+
+        return {
+            id: sanitizeToken(project.id || `project-${index + 1}`) || `project-${index + 1}`,
+            title: sanitizeText(project.title || "Projeto sem titulo"),
+            summary: sanitizeText(project.summary || "Sem resumo disponivel."),
+            impact: sanitizeText(project.impact || "Impacto nao informado."),
+            year: Number(project.year) || new Date().getFullYear(),
+            tags: normalizedTags,
+            stack: normalizedStack,
+            url: sanitizeUrl(project.url)
+        };
+    }
+
+    function sanitizeUrl(url) {
+        const value = String(url || "").trim();
+        if (!value) {
+            return "#";
+        }
+
+        try {
+            const parsed = new URL(value, window.location.href);
+            return parsed.href;
+        } catch (_error) {
+            return "#";
+        }
+    }
+
+    function sanitizeToken(value) {
+        return sanitizeText(value)
+            .toLowerCase()
+            .replace(/\s+/g, "-")
+            .replace(/[^a-z0-9-]/g, "")
+            .trim();
+    }
+
+    function sanitizeText(value) {
+        return String(value || "")
+            .replace(/<[^>]*>/g, "")
+            .replace(/[\u0000-\u001F\u007F]/g, "")
+            .trim();
+    }
+
+    function formatTag(tag) {
+        const dictionary = {
+            dados: "Dados",
+            frontend: "Frontend",
+            backend: "Backend",
+            python: "Python",
+            iot: "IoT"
+        };
+
+        return dictionary[tag] || String(tag || "").replace(/-/g, " ");
     }
 
     function normalize(value) {
-        return value
+        return String(value || "")
             .toLowerCase()
             .normalize("NFD")
             .replace(/[\u0300-\u036f]/g, "");
     }
 
-    function debounce(callback, delay) {
-        let timerId = null;
+    function debounce(callback, delayMs) {
+        let timer = null;
+
         return value => {
-            if (timerId) {
-                clearTimeout(timerId);
+            if (timer) {
+                clearTimeout(timer);
             }
-            timerId = window.setTimeout(() => callback(value), delay);
+
+            timer = window.setTimeout(() => callback(value), delayMs);
         };
+    }
+
+    function loadFavoriteIds() {
+        const raw = safeStorageGet(FAVORITES_STORAGE_KEY);
+
+        if (!raw) {
+            return new Set();
+        }
+
+        try {
+            const parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed)) {
+                return new Set();
+            }
+
+            return new Set(parsed.map(value => sanitizeToken(value)).filter(Boolean));
+        } catch (_error) {
+            return new Set();
+        }
+    }
+
+    function persistFavoriteIds(favoritesSet) {
+        try {
+            safeStorageSet(FAVORITES_STORAGE_KEY, JSON.stringify([...favoritesSet]));
+        } catch (_error) {
+            // ignore storage errors
+        }
     }
 
     function safeStorageGet(key) {
@@ -844,7 +1256,20 @@
         try {
             window.localStorage.setItem(key, value);
         } catch (_error) {
-            // ignore storage failures
+            // ignore storage errors
         }
+    }
+
+    function legacyCopyToClipboard(value) {
+        const textArea = document.createElement("textarea");
+        textArea.value = value;
+        textArea.setAttribute("readonly", "true");
+        textArea.style.position = "absolute";
+        textArea.style.left = "-9999px";
+
+        document.body.append(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
     }
 })();

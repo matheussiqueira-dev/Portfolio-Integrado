@@ -103,9 +103,15 @@ Backend:
 ├── index.html
 ├── style.css
 ├── script.js
+├── docs/
+│   └── ux-ui-guidelines.md
 ├── package.json
 └── README.md
 ```
+
+## Documentacao de Design
+
+- Guia de UX/UI e Design System: `docs/ux-ui-guidelines.md`
 
 ## Setup e Execucao
 

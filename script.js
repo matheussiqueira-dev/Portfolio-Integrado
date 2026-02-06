@@ -88,6 +88,7 @@
         setCurrentYear();
         initializeThemeToggle();
         initializeNavigation();
+        initializeScrollProgress();
         initializeRevealObserver();
         initializeCounters();
         initializeScrollSpy();
@@ -227,7 +228,7 @@
     }
 
     function initializeScrollSpy() {
-        const links = Array.from(document.querySelectorAll('.main-nav a[href^="#"]'));
+        const links = Array.from(document.querySelectorAll('.main-nav a[href^="#"], .mobile-dock a[href^="#"]'));
         if (!links.length || !window.IntersectionObserver) {
             return;
         }
@@ -272,6 +273,26 @@
         );
 
         entries.forEach(entry => observer.observe(entry.section));
+    }
+
+    function initializeScrollProgress() {
+        const progressBar = document.getElementById("scroll-progress-bar");
+        if (!progressBar) {
+            return;
+        }
+
+        const update = () => {
+            const maxScroll = Math.max(
+                document.documentElement.scrollHeight - window.innerHeight,
+                1
+            );
+            const ratio = Math.min(Math.max(window.scrollY / maxScroll, 0), 1);
+            progressBar.style.transform = `scaleX(${ratio})`;
+        };
+
+        update();
+        window.addEventListener("scroll", update, { passive: true });
+        window.addEventListener("resize", update);
     }
 
     function initializeRevealObserver() {
@@ -616,43 +637,49 @@
 
         let recommended = [];
         let source = "local";
+        list.setAttribute("aria-busy", "true");
+        feedback.textContent = "Analisando contexto e priorizando projetos...";
 
-        if (preferApi) {
-            try {
-                const params = new URLSearchParams({
-                    interest,
-                    search,
-                    status: "published",
-                    limit: String(RECOMMENDATION_LIMIT)
-                });
+        try {
+            if (preferApi) {
+                try {
+                    const params = new URLSearchParams({
+                        interest,
+                        search,
+                        status: "published",
+                        limit: String(RECOMMENDATION_LIMIT)
+                    });
 
-                const response = await fetchJson(`${API_BASE}/projects/recommendations?${params.toString()}`);
-                const items = Array.isArray(response.items) ? response.items : [];
-                recommended = items.map((project, index) => normalizeProject(project, index));
-                source = "api";
-            } catch (_error) {
-                recommended = [];
+                    const response = await fetchJson(`${API_BASE}/projects/recommendations?${params.toString()}`);
+                    const items = Array.isArray(response.items) ? response.items : [];
+                    recommended = items.map((project, index) => normalizeProject(project, index));
+                    source = "api";
+                } catch (_error) {
+                    recommended = [];
+                }
             }
+
+            if (!recommended.length) {
+                recommended = getLocalRecommendations({
+                    interestTokens,
+                    searchTokens,
+                    limit: RECOMMENDATION_LIMIT
+                });
+                source = "local";
+            }
+
+            state.recommendedProjects = recommended;
+            renderRecommendations(list, recommended);
+
+            if (!recommended.length) {
+                feedback.textContent = "Nenhum projeto aderente ao contexto informado.";
+                return;
+            }
+
+            feedback.textContent = `Sugestoes geradas com base em ${source === "api" ? "ranking da API" : "analise local resiliente"}.`;
+        } finally {
+            list.setAttribute("aria-busy", "false");
         }
-
-        if (!recommended.length) {
-            recommended = getLocalRecommendations({
-                interestTokens,
-                searchTokens,
-                limit: RECOMMENDATION_LIMIT
-            });
-            source = "local";
-        }
-
-        state.recommendedProjects = recommended;
-        renderRecommendations(list, recommended);
-
-        if (!recommended.length) {
-            feedback.textContent = "Nenhum projeto aderente ao contexto informado.";
-            return;
-        }
-
-        feedback.textContent = `Sugestoes geradas com base em ${source === "api" ? "ranking da API" : "analise local resiliente"}.`;
     }
 
     function renderRecommendations(container, projects) {
@@ -1345,6 +1372,8 @@
         const feedback = form.querySelector(".form-feedback");
         const submitButton = form.querySelector("#contact-submit");
         const counter = form.querySelector("#message-counter");
+        const progressLabel = form.querySelector("#contact-progress-label");
+        const progressFill = form.querySelector("#contact-progress-fill");
 
         const nameField = form.elements.namedItem("name");
         const emailField = form.elements.namedItem("email");
@@ -1367,6 +1396,7 @@
             message: messageField,
             consent: consentField
         };
+        const requiredFieldNames = Object.keys(fields);
 
         const validators = {
             name: value => {
@@ -1425,20 +1455,34 @@
         }, 220);
 
         [nameField, emailField, subjectField, messageField].forEach(field => {
-            field.addEventListener("input", persistDraft);
+            field.addEventListener("input", () => {
+                persistDraft();
+                updateFormProgress();
+            });
         });
-        consentField.addEventListener("change", persistDraft);
+        consentField.addEventListener("change", () => {
+            persistDraft();
+            updateFormProgress();
+        });
 
         form.addEventListener("submit", async event => {
             event.preventDefault();
 
-            const allValid = Object.keys(fields).every(validateField);
+            const allValid = requiredFieldNames.every(validateField);
             if (!feedback) {
                 return;
             }
 
             if (!allValid) {
                 setFeedback("error", "Revise os campos destacados para continuar.");
+                const firstInvalidFieldName = requiredFieldNames.find(fieldName => {
+                    const field = fields[fieldName];
+                    return field.getAttribute("aria-invalid") === "true";
+                });
+                if (firstInvalidFieldName) {
+                    fields[firstInvalidFieldName].focus();
+                }
+                updateFormProgress();
                 return;
             }
 
@@ -1475,6 +1519,7 @@
                 updateCounter();
                 clearAllErrors();
                 clearContactDraft();
+                updateFormProgress();
             } catch (error) {
                 if (error.code === "DUPLICATE_CONTACT") {
                     setFeedback("error", "Mensagem duplicada detectada. Aguarde um pouco antes de reenviar.");
@@ -1486,7 +1531,8 @@
                 }
             } finally {
                 if (submitButton instanceof HTMLButtonElement) {
-                    submitButton.disabled = false;
+                    submitButton.disabled = !isContactFormReady();
+                    submitButton.setAttribute("aria-disabled", String(submitButton.disabled));
                     submitButton.textContent = "Enviar mensagem";
                 }
             }
@@ -1497,6 +1543,7 @@
             const value = fieldName === "consent" ? field.checked : field.value;
             const errorMessage = validators[fieldName](value);
             setFieldError(fieldName, errorMessage);
+            updateFormProgress();
             return !errorMessage;
         }
 
@@ -1517,7 +1564,7 @@
         }
 
         function clearAllErrors() {
-            Object.keys(fields).forEach(fieldName => setFieldError(fieldName, ""));
+            requiredFieldNames.forEach(fieldName => setFieldError(fieldName, ""));
         }
 
         function setFeedback(type, text, actionHref = "") {
@@ -1545,6 +1592,42 @@
             currentFields.message.value = String(draft.message || "").slice(0, 1200);
             currentFields.consent.checked = Boolean(draft.consent);
         }
+
+        function isContactFormReady() {
+            return requiredFieldNames.every(fieldName => {
+                const field = fields[fieldName];
+                const value = fieldName === "consent" ? field.checked : field.value;
+                return !validators[fieldName](value);
+            });
+        }
+
+        function updateFormProgress() {
+            const validFields = requiredFieldNames.reduce((total, fieldName) => {
+                const field = fields[fieldName];
+                const value = fieldName === "consent" ? field.checked : field.value;
+                return total + (validators[fieldName](value) ? 0 : 1);
+            }, 0);
+
+            const percent = Math.round((validFields / requiredFieldNames.length) * 100);
+            const ready = validFields === requiredFieldNames.length;
+
+            if (progressFill instanceof HTMLElement) {
+                progressFill.style.width = `${percent}%`;
+            }
+
+            if (progressLabel instanceof HTMLElement) {
+                progressLabel.textContent = ready
+                    ? "Briefing completo: pronto para envio."
+                    : `Progresso do briefing: ${percent}%`;
+            }
+
+            if (submitButton instanceof HTMLButtonElement) {
+                submitButton.disabled = !ready;
+                submitButton.setAttribute("aria-disabled", String(!ready));
+            }
+        }
+
+        updateFormProgress();
     }
 
     function initializeCopyEmail() {

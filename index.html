@@ -49,6 +49,9 @@
 </head>
 <body>
     <a class="skip-link" href="#conteudo-principal">Pular para o conteudo principal</a>
+    <div class="scroll-progress" aria-hidden="true">
+        <span id="scroll-progress-bar"></span>
+    </div>
 
     <div class="ambient ambient--north" aria-hidden="true"></div>
     <div class="ambient ambient--east" aria-hidden="true"></div>
@@ -350,36 +353,48 @@
                 </header>
 
                 <form id="contact-form" class="card contact-form reveal" novalidate>
+                    <div class="contact-progress" role="status" aria-live="polite">
+                        <p id="contact-progress-label">Progresso do briefing: 0%</p>
+                        <div class="contact-progress__bar" aria-hidden="true">
+                            <span id="contact-progress-fill"></span>
+                        </div>
+                    </div>
+                    <p class="contact-form__meta">Tempo medio de preenchimento: cerca de 1 minuto.</p>
+
                     <div class="form-field">
                         <label for="name">Nome</label>
-                        <input id="name" name="name" type="text" autocomplete="name" placeholder="Seu nome completo" required>
-                        <p class="field-error" data-error-for="name" aria-live="polite"></p>
+                        <input id="name" name="name" type="text" autocomplete="name" placeholder="Seu nome completo" required aria-describedby="name-hint name-error">
+                        <p class="field-hint" id="name-hint">Utilize nome e sobrenome para um retorno mais rapido.</p>
+                        <p class="field-error" id="name-error" data-error-for="name" aria-live="polite"></p>
                     </div>
 
                     <div class="form-field">
                         <label for="email">Email</label>
-                        <input id="email" name="email" type="email" autocomplete="email" placeholder="nome@empresa.com" required>
-                        <p class="field-error" data-error-for="email" aria-live="polite"></p>
+                        <input id="email" name="email" type="email" autocomplete="email" placeholder="nome@empresa.com" required aria-describedby="email-hint email-error">
+                        <p class="field-hint" id="email-hint">Informe um email corporativo ou pessoal valido.</p>
+                        <p class="field-error" id="email-error" data-error-for="email" aria-live="polite"></p>
                     </div>
 
                     <div class="form-field">
                         <label for="subject">Assunto</label>
-                        <input id="subject" name="subject" type="text" placeholder="Ex.: Evolucao de API e painel web" required>
-                        <p class="field-error" data-error-for="subject" aria-live="polite"></p>
+                        <input id="subject" name="subject" type="text" placeholder="Ex.: Evolucao de API e painel web" required aria-describedby="subject-hint subject-error">
+                        <p class="field-hint" id="subject-hint">Resuma o objetivo principal em uma frase curta.</p>
+                        <p class="field-error" id="subject-error" data-error-for="subject" aria-live="polite"></p>
                     </div>
 
                     <div class="form-field">
                         <label for="message">Mensagem</label>
-                        <textarea id="message" name="message" rows="6" maxlength="1200" placeholder="Descreva contexto, objetivo e prazo estimado" required></textarea>
+                        <textarea id="message" name="message" rows="6" maxlength="1200" placeholder="Descreva contexto, objetivo e prazo estimado" required aria-describedby="message-hint message-counter message-error"></textarea>
+                        <p class="field-hint" id="message-hint">Inclua contexto, escopo e prazo para aumentar precisao da resposta.</p>
                         <p class="field-hint" id="message-counter" aria-live="polite">0/1200 caracteres</p>
-                        <p class="field-error" data-error-for="message" aria-live="polite"></p>
+                        <p class="field-error" id="message-error" data-error-for="message" aria-live="polite"></p>
                     </div>
 
                     <label class="consent-field" for="consent">
-                        <input id="consent" type="checkbox" required>
+                        <input id="consent" type="checkbox" required aria-describedby="consent-error">
                         <span>Concordo com o envio dos dados para retorno profissional.</span>
                     </label>
-                    <p class="field-error" data-error-for="consent" aria-live="polite"></p>
+                    <p class="field-error" id="consent-error" data-error-for="consent" aria-live="polite"></p>
 
                     <button class="btn btn--primary" id="contact-submit" type="submit">Enviar mensagem</button>
                     <p class="form-feedback" role="status" aria-live="polite"></p>
@@ -406,6 +421,12 @@
             <a href="#topo">Voltar ao topo</a>
         </div>
     </footer>
+
+    <nav class="mobile-dock" aria-label="Atalhos rapidos">
+        <a href="#portfolio">Projetos</a>
+        <a href="#recomendacoes">Recomendar</a>
+        <a href="#contato">Contato</a>
+    </nav>
 
     <section id="project-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" hidden>
         <button class="modal__backdrop" type="button" data-modal-close aria-label="Fechar detalhes"></button>

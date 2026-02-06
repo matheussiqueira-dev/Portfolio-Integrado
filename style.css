@@ -126,6 +126,25 @@ textarea:focus-visible {
     top: 1rem;
 }
 
+.scroll-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 7100;
+    height: 3px;
+    background: color-mix(in srgb, var(--color-border) 35%, transparent);
+}
+
+#scroll-progress-bar {
+    display: block;
+    width: 100%;
+    height: 100%;
+    transform: scaleX(0);
+    transform-origin: left center;
+    background: linear-gradient(90deg, var(--color-brand), var(--color-accent));
+}
+
 .shell {
     width: min(100% - 2rem, var(--container));
     margin: 0 auto;
@@ -432,6 +451,13 @@ h1 {
 .btn:hover,
 .btn:focus-visible {
     transform: translateY(-2px);
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
 .btn--primary {
@@ -905,6 +931,11 @@ h1 {
     gap: 0.62rem;
 }
 
+.recommendation-list[aria-busy="true"] {
+    opacity: 0.62;
+    pointer-events: none;
+}
+
 .recommendation-item {
     padding: 0.9rem;
     border-radius: var(--radius-lg);
@@ -1055,6 +1086,41 @@ h1 {
     padding: 1.14rem;
 }
 
+.contact-progress {
+    display: grid;
+    gap: 0.35rem;
+    margin-bottom: 0.75rem;
+}
+
+.contact-progress p {
+    margin: 0;
+    font-size: 0.79rem;
+    color: var(--color-text-muted);
+    font-weight: 700;
+}
+
+.contact-progress__bar {
+    height: 0.5rem;
+    border-radius: 999px;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--color-text-muted) 24%, transparent);
+}
+
+.contact-progress__bar span {
+    display: block;
+    height: 100%;
+    width: 0;
+    border-radius: inherit;
+    transition: width 0.25s ease;
+    background: linear-gradient(90deg, var(--color-brand), var(--color-accent));
+}
+
+.contact-form__meta {
+    margin: 0 0 0.75rem;
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+}
+
 .form-field {
     margin-bottom: 0.82rem;
     display: grid;
@@ -1082,6 +1148,11 @@ h1 {
     min-height: 1.1rem;
     color: var(--color-danger);
     font-size: 0.77rem;
+}
+
+.contact-form input[aria-invalid="true"],
+.contact-form textarea[aria-invalid="true"] {
+    border-color: color-mix(in srgb, var(--color-danger) 55%, var(--color-border));
 }
 
 .consent-field {
@@ -1147,6 +1218,10 @@ h1 {
 
 .site-footer {
     border-top: 1px solid var(--color-border);
+}
+
+.mobile-dock {
+    display: none;
 }
 
 .footer-shell {
@@ -1332,6 +1407,10 @@ h1 {
 }
 
 @media (max-width: 760px) {
+    body {
+        padding-bottom: 4.9rem;
+    }
+
     .section {
         padding: 3.8rem 0;
     }
@@ -1368,6 +1447,40 @@ h1 {
     .footer-shell {
         text-align: center;
         justify-content: center;
+    }
+
+    .mobile-dock {
+        position: fixed;
+        left: 0.75rem;
+        right: 0.75rem;
+        bottom: 0.75rem;
+        z-index: 5600;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.42rem;
+        border: 1px solid var(--color-border);
+        border-radius: 1rem;
+        padding: 0.4rem;
+        backdrop-filter: blur(14px);
+        background: color-mix(in srgb, var(--color-surface) 84%, transparent);
+        box-shadow: var(--shadow-md);
+    }
+
+    .mobile-dock a {
+        min-height: 2.45rem;
+        border-radius: 0.8rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        color: var(--color-text-muted);
+        font-size: 0.76rem;
+        font-weight: 800;
+    }
+
+    .mobile-dock a[aria-current="true"] {
+        color: var(--color-brand);
+        background: color-mix(in srgb, var(--color-brand) 14%, transparent);
     }
 }
 
